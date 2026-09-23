@@ -401,8 +401,8 @@ var UI_TEXT = {
   'tickets.h2': { zh: '票（issues/）· 点一行可复制实现指引', en: 'Tickets (issues/) · click a row to copy its implementation prompt' },
   'tickets.none': { zh: '这个 effort 还没有票。', en: 'This effort has no tickets yet.' },
   'tickets.tiers.aria': { zh: '按 triage 档位过滤票表', en: 'Filter the ticket table by triage tier' },
-  'tickets.tier.title': { zh: '只看 {tier} 档的进行中票（再点一下回全量）', en: 'Show only open {tier} tickets (click again for all)' },
-  'tickets.tier-empty': { zh: '「{tier}」档现在没有进行中的票。', en: 'No open tickets in the {tier} tier right now.' },
+  'tickets.tier.title': { zh: '只看 {tier} 档的票（再点一下回全量）', en: 'Show only {tier} tickets (click again for all)' },
+  'tickets.tier-empty': { zh: '「{tier}」档现在没有票。', en: 'No tickets in the {tier} tier right now.' },
   'th.key': { zh: '编号', en: 'Key' },
   'th.title': { zh: '标题', en: 'Title' },
   'th.state': { zh: '状态', en: 'State' },
@@ -413,6 +413,7 @@ var UI_TEXT = {
   'th.actions': { zh: '操作', en: 'Actions' },
   'ticket.claiming': { zh: '（{who} 认领中）', en: ' ({who} claimed)' },
   'ticket.state-closed': { zh: '已关闭', en: 'Closed' },
+  'ticket.state-wontfix': { zh: '不再处理', en: 'Not planned' },
   'ticket.state-open': { zh: '进行中', en: 'In progress' },
   'ticket.warn.title': { zh: '字段行写法漂移（票仍有效）\n{msgs}', en: 'Field line drifted (the ticket is still valid)\n{msgs}' },
   'ticket.warn.aria': { zh: '警告：{msgs}', en: 'Warning: {msgs}' },
@@ -968,12 +969,13 @@ function renderTickets(eff) {
     card.appendChild(el('div', 'sub', t('tickets.none')))
     return card
   }
-  // 六档 chip：点亮=只看该档（已关闭票不参与），再点回全量；过滤态经渲染签名保持
+  // 六档 chip：普通档只计开放票，wontfix 保留已关闭的归档票；过滤态经渲染签名保持
+  function inTier(tk, tier) { return tk.status === tier && (tk.state !== 'closed' || tier === 'wontfix') }
   var tiers = el('div', 'tiers')
   tiers.setAttribute('role', 'group')
   tiers.setAttribute('aria-label', t('tickets.tiers.aria'))
   TRIAGE_TIERS.forEach(function (tier) {
-    var count = eff.tickets.filter(function (t) { return t.state !== 'closed' && t.status === tier.id }).length
+    var count = eff.tickets.filter(function (tk) { return inTier(tk, tier.id) }).length
     var chip = el('button', 'tierchip' + (ticketFilter === tier.id ? ' on' : ''))
     chip.style.background = tier.color
     chip.style.color = tier.ink
@@ -990,7 +992,7 @@ function renderTickets(eff) {
   })
   card.appendChild(tiers)
   var visible = ticketFilter
-    ? eff.tickets.filter(function (t) { return t.state !== 'closed' && t.status === ticketFilter })
+    ? eff.tickets.filter(function (tk) { return inTier(tk, ticketFilter) })
     : eff.tickets
   if (!visible.length) {
     card.appendChild(el('div', 'sub', tf('tickets.tier-empty', { tier: ticketFilter })))
@@ -1019,7 +1021,8 @@ function renderTickets(eff) {
       tdTitle.appendChild(warn)
     }
     tr.appendChild(tdTitle)
-    tr.appendChild(el('td', tk.state === 'closed' ? 'state-closed' : 'state-open', t(tk.state === 'closed' ? 'ticket.state-closed' : 'ticket.state-open')))
+    var stateLabel = tk.state !== 'closed' ? 'ticket.state-open' : tk.status === 'wontfix' ? 'ticket.state-wontfix' : 'ticket.state-closed'
+    tr.appendChild(el('td', tk.state === 'closed' ? 'state-closed' : 'state-open', t(stateLabel)))
     tr.appendChild(el('td', null, tk.type || '—'))
     tr.appendChild(el('td', null, tk.blockedBy && tk.blockedBy.length ? '#' + tk.blockedBy.join(t('sep.blocked')) : '—'))
     tr.appendChild(el('td', null, tk.progress === null || tk.progress === undefined ? '—' : tk.progress + '%'))
@@ -1040,7 +1043,7 @@ function renderTickets(eff) {
       }))
       clickable(tr, function () { copyText(ticketCopy(eff, tk)) })
     } else {
-      tr.title = t('ticket.state-closed')
+      tr.title = t(stateLabel)
     }
     tbody.appendChild(tr)
   })

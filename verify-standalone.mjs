@@ -76,6 +76,8 @@ import os from 'node:os'
 import nodePath from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scanWorkspace } from './scan.mjs'
+import { parseMd } from './lib/parse.mjs'
+import { closedKeySet, isFrontierTicket, deriveChain, FLOW_STAGES } from './flowchain.mjs'
 import { startServer, loadConfig, resolveRoot, normalizeRecentRoots, touchRecentRoot, RECENT_ROOTS_LIMIT } from './server.mjs'
 
 const HERE = nodePath.dirname(fileURLToPath(import.meta.url))
@@ -196,6 +198,25 @@ async function runScenarios(tmp) {
   assert.equal(c.chain.progress, 100)
   assert.equal(c.tickets[0].state, 'closed')
   ok('场景 3：票全部关闭 → 四阶段完成，进度 100%')
+
+  const abandoned = parseMd('## 搁置的设计\nStatus: wontfix\n', { key: '07', updatedAt: '2026-09-18T00:00:00Z' })
+  assert.equal(abandoned.state, 'closed')
+  assert.equal(abandoned.reason, 'not_planned', 'wontfix 关闭但不冒充已实现')
+  assert.equal(abandoned.closedAt, '2026-09-18T00:00:00Z')
+  const archivedTmp = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'flowdeck-wontfix-'))
+  try {
+    await writeFile(nodePath.join(archivedTmp, '.scratch/archived/issues/07-design.md'), '# 搁置的设计\n**Status:** wontfix\n')
+    const archived = (await scanWorkspace(archivedTmp)).efforts[0]
+    assert.equal(archived.tickets[0].status, 'wontfix')
+    assert.equal(archived.tickets[0].state, 'closed')
+    assert.deepEqual(archived.chain.counts, { tickets: 1, closed: 1, open: 0, blocked: 0 })
+    assert.equal(archived.chain.complete, true)
+    assert.equal(archived.chain.currentId, null)
+    assert.equal(isFrontierTicket(archived.tickets[0], closedKeySet(archived.tickets)), false)
+  } finally {
+    await fs.rm(archivedTmp, { recursive: true, force: true })
+  }
+  ok('wontfix 归档票：加粗 Status 解析为未计划的关闭，扫描/链路/前沿都不算进行中')
 
   const s = ws.efforts.find((e) => e.slug === 'only-spec')
   assert.equal(s.chain.currentId, 'tickets', 'spec 已在，当前步应越过 grill 与 spec')
@@ -409,7 +430,6 @@ async function runScenarios(tmp) {
   ok('Comments 夹具（本地断言）：作者—日期 / 中文作者全角破折号 / 半角连字符 / 无日期裸名 / 非ISO日期 / 多条收段 / --- 截断 / 空正文——八分支钉死')
 
   // ── 流程链是纯函数：同一输入两次推导结果一致（无隐藏状态）──
-  const { deriveChain, FLOW_STAGES } = await import('./flowchain.mjs')
   const r1 = deriveChain({ slug: 'x', map: { exists: true, destination: 'd', fogCount: 0 }, spec: { exists: true, contentLength: 10 }, tickets: [{ state: 'open', blockedBy: [] }] })
   const r2 = deriveChain({ slug: 'x', map: { exists: true, destination: 'd', fogCount: 0 }, spec: { exists: true, contentLength: 10 }, tickets: [{ state: 'open', blockedBy: [] }] })
   assert.deepEqual(r1, r2)
@@ -449,7 +469,6 @@ async function runScenarios(tmp) {
   ok('链后向推定：spec/票推定 grill 与 spec 完成，无产物标「推定 · 无 map」「推定 · 无 spec」，早期 effort 零变化')
 
   // ── 前沿口径（票 02）：阻塞计数与前沿判定同口径——依赖未全结才算阻塞 ──
-  const { isFrontierTicket, closedKeySet } = await import('./flowchain.mjs')
   // 依赖全结不计阻塞（旧口径「有 Blocked by 行就算」在此仍计 1，属有意修正）
   assert.equal(deriveChain({ slug: 'x', tickets: [
     { key: '01', state: 'open', blockedBy: ['02'] },
@@ -2311,6 +2330,18 @@ async function runScenarios(tmp) {
     fDoc.dispatchEvent(new fWin.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     assert.equal(fDoc.getElementById('readModal').hasAttribute('hidden'), true, 'Esc 关闭票正文弹窗')
     assert.equal(fDoc.activeElement, viewBtn, '关闭后焦点归还查看按钮')
+    fxPayload.efforts[0].tickets.push({ key: '05', fileName: '05-archive.md', title: '搁置票', state: 'closed', status: 'wontfix', claimedBy: '', type: 'task', blockedBy: [], progress: null, formatWarnings: [], updatedAt: '2026-09-18T00:00:00Z' })
+    fDoc.getElementById('refreshBtn').dispatchEvent(new fWin.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.equal(chipOf('wontfix').querySelector('.cnt').textContent, '1', '归档票在 wontfix 档仍可检索')
+    chipOf('wontfix').dispatchEvent(new fWin.Event('click'))
+    assert.equal(fDoc.querySelectorAll('tr.ticket').length, 1)
+    const archivedRow = fDoc.querySelector('tr.ticket')
+    assert.equal(archivedRow.querySelector('.key').textContent, '05')
+    assert.equal(archivedRow.querySelector('.state-closed').textContent, '不再处理')
+    assert.equal(archivedRow.title, '不再处理')
+    assert.equal(archivedRow.hasAttribute('tabindex'), false, '归档票不能复制实现指引')
     assert.deepEqual(jsErrorsFx, [])
     fxDom.window.close()
     ok('票查证（jsdom）：档位 chip 过滤/取消/轮询保持/aria-pressed；查看按钮键盘可达且不误触行复制；票正文弹窗懒加载、字段行剥除、Comments 成节、快照语义')

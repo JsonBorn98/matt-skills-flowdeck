@@ -102,7 +102,7 @@ Tickets use inline field lines (not YAML frontmatter). **Bold or bare, both lega
 
 ```markdown
 # Ticket title
-**Status:** ready-for-agent  # resolved / completed / closed / done all count as closed; claimed = in progress
+**Status:** ready-for-agent  # resolved / completed / closed / done / wontfix count as closed; wontfix = not planned
 Type: task                   # research / prototype / grilling / task
 **Blocked by:** #02, #03     # tickets this one depends on
 
