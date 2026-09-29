@@ -73,17 +73,18 @@
   a { color: var(--fd-accent); }
   button { font: inherit; cursor: pointer; border: 1px solid var(--fd-rule); background: var(--fd-chip); color: var(--fd-ink-body); border-radius: var(--fd-radius-btn); padding: 0.4rem 1.2rem; }
   button:hover { border-color: var(--fd-ink-muted); background: var(--fd-chip-hover); }
-  button:disabled { opacity: 0.55; cursor: default; }
+  /* 禁用的不止按钮：指引词未选面时两个 textarea 一并禁用（票 03），没有这条的话它们看着
+     照样能敲——「看起来能编辑、其实敲不进去」比明确的灰掉糟得多。 */
+  button:disabled, select:disabled, textarea:disabled { opacity: 0.55; cursor: default; }
   button.primary { background: var(--fd-btn-bg); border-color: var(--fd-btn-bg); color: var(--fd-accent-ink); }
   button.primary:hover { background: var(--fd-btn-bg-hover); border-color: var(--fd-btn-bg-hover); }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--fd-accent); outline-offset: 1px; }
-  input, select { font: inherit; color: var(--fd-ink-body); background: var(--fd-paper); border: 1px solid var(--fd-rule); border-radius: var(--fd-radius-btn); padding: 0.4rem 0.8rem; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--fd-accent); outline-offset: 1px; }
+  input, select, textarea { font: inherit; color: var(--fd-ink-body); background: var(--fd-paper); border: 1px solid var(--fd-rule); border-radius: var(--fd-radius-btn); padding: 0.4rem 0.8rem; }
 
-  /* ── 地址栏组合框：常用目录下拉（右缘 ▾ + 浮层菜单） ── */
+  /* ── 开新标签入口：顶栏按钮 + 浮层（顶部一个路径框，下面是常用目录） ── */
   .rootbox { position: relative; }
-  .rootbox #rootInput { width: 250px; padding-right: 2.6rem; }
-  #rootMenuBtn { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--fd-ink-muted); padding: 0.2rem 0.5rem; }
-  #rootMenuBtn:hover { background: transparent; color: var(--fd-accent); }
+  .menu-head { position: sticky; top: 0; padding: 0.8rem; background: var(--fd-paper); border-bottom: 1px solid var(--fd-rule); }
+  .menu-head #newTabPath { width: 100%; }
   .menu { position: absolute; top: calc(100% + 4px); right: 0; width: 400px; max-width: 92vw; max-height: 330px; overflow: auto; background: var(--fd-paper); border: 1px solid var(--fd-rule); border-radius: var(--fd-radius); box-shadow: var(--fd-shadow-float); z-index: 40; }
   .menu-empty { padding: 1.8rem 1.4rem; text-align: center; color: var(--fd-ink-muted); font-size: 1.2rem; }
   .opt { position: relative; padding: 0.7rem 3.4rem 0.7rem 1.2rem; border-bottom: 1px solid var(--fd-rule-soft); cursor: pointer; }
@@ -115,13 +116,48 @@
   .tabs { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.4rem; }
   .tabs button { border-radius: 999px; }
   .tabs button.on { background: var(--fd-tab-on-bg); border-color: var(--fd-tab-on-bg); color: var(--fd-tab-on-ink); }
+  /* 完工 effort 的折叠入口（票 01）：一枚收着的 pill，虚线边 + 淡墨色，不与进行中的 tab 抢眼 */
+  .tabs button.donefold { color: var(--fd-ink-muted); border-style: dashed; }
+
+  /* ── 项目标签条（project-tabs 票 01）：顶栏下方一整行，可折成细线 ──
+     卡 = 状态点 + 自动派生 emoji + 目录 basename + 关闭件；色值只经 --fd-* 别名消费
+     （三主题同源），字号与间距走 rem 因而随流式缩放基座伸缩，定宽刻意只给组件本身。 */
+  .tabstrip { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.4rem; }
+  .tabcard { display: flex; align-items: center; gap: 0.6rem; max-width: 24rem; padding: 0.4rem 0.5rem 0.4rem 0.8rem; border: 1px solid var(--fd-rule); border-radius: var(--fd-radius-btn); background: var(--fd-chip); cursor: pointer; }
+  .tabcard:hover { background: var(--fd-chip-hover); border-color: var(--fd-ink-muted); }
+  .tabcard.on { background: var(--fd-tab-on-bg); border-color: var(--fd-tab-on-bg); color: var(--fd-tab-on-ink); }
+  .tabcard .tname { max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tabcard .temoji { font-size: 1.3rem; line-height: 1; flex: none; }
+  .tabcard .tclose { flex: none; border: none; background: transparent; color: inherit; opacity: 0.6; padding: 0 0.3rem; }
+  .tabcard .tclose:hover { background: transparent; border-color: transparent; opacity: 1; color: var(--fd-bad); }
+  .tabcard.on .tclose:hover { color: inherit; text-decoration: line-through; }
+  /* 状态点：活跃实心、挂起灰空心——「哪张在前台」一眼可辨，不靠一闪而过的内容区徽标 */
+  .tabcard .tdot { width: 8px; height: 8px; flex: none; border-radius: 50%; border: 2px solid var(--fd-ink-muted); }
+  .tabcard.on .tdot { background: currentColor; border-color: currentColor; }
+  /* 挂起卡的最后刷新时刻（票 02）：数据停在旧拍这件事摆在卡面上，别等到切回去才发现。
+     走 muted 前景色（与状态点同源），字号比目录名小一档让名字仍是最强的那一层。 */
+  .tabcard .tstamp { flex: none; font-size: 1rem; color: var(--fd-ink-muted); font-variant-numeric: tabular-nums; }
+  .tabcard .tstamp::before { content: '·'; margin-right: 0.3rem; color: var(--fd-rule); }
+  /* 折叠把手：展开态排在卡尾（靠右），折叠态独占一行、就是整条标签条 */
+  .tabhandle { flex: none; margin-left: auto; border: none; background: transparent; color: var(--fd-ink-muted); padding: 0.2rem 0.8rem; }
+  .tabhandle:hover { background: var(--fd-chip-hover); border-color: var(--fd-rule); color: var(--fd-accent); }
+  .tabhandle.only { margin-left: 0; width: 100%; border: 1px solid var(--fd-rule); border-radius: var(--fd-radius-btn); text-align: left; }
+  /* 空态：全关之后给一个居中的大入口（关浏览视图不碰服务端追踪目录，所以这里只是入口） */
+  .tabstrip.empty { flex-direction: column; align-items: center; gap: 0.8rem; padding: 2rem 1.4rem; border: 1px dashed var(--fd-rule); border-radius: var(--fd-radius); }
+  .tabstrip.empty .sub { text-align: center; max-width: 46rem; }
 
   .card { background: var(--fd-card); border: 1px solid var(--fd-rule); border-radius: var(--fd-radius); padding: 1.6rem; margin-bottom: 1.6rem; }
   .card h2 { font-size: 1.3rem; margin: 0 0 1.2rem; color: var(--fd-ink-muted); font-weight: 600; letter-spacing: 0.02em; }
-  /* 卡片头：标题 + 右侧动作（如「展开阅读」）共处一行 */
+  /* 卡片头：标题 + 右侧动作（如「展开阅读」「？」）共处一行 */
   .cardhead { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem; }
   .cardhead h2 { flex: 1; margin: 0; }
   .cardhead button { flex: none; font-size: 1.2rem; padding: 0.2rem 1rem; }
+  /* 流程链标题行：effort 名可能很长，得让标题自己换行而不是顶住「？」（票 02）。
+     只加在 chainhead 上——共享的 .cardhead h2 另有使用者（规格卡的「展开阅读」、全部视图头），
+     换行规则不该顺手改到它们身上。min-width: 0 是弹性子项肯缩到 min-content 以下的前提。 */
+  .cardhead.chainhead h2 { min-width: 0; overflow-wrap: anywhere; }
+  /* 流程链标题行右上角的「？」：一枚小圆钮，常驻、不抢标题的戏 */
+  .cardhead .chainq { font-size: 1.3rem; line-height: 1; padding: 0.25rem 0.7rem; color: var(--fd-ink-muted); }
 
   /* 流程链：横向四步 */
   .chain { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; }
@@ -145,9 +181,6 @@
   .stage.current { border-color: var(--fd-accent); }
   .stage.done { border-color: color-mix(in srgb, var(--fd-ok) 45%, transparent); }
   .stage .evidence { margin-top: 0.8rem; font-size: 1.2rem; color: var(--fd-ink-muted); }
-  /* 技能联动（票 05）：链格内的技能介绍入口（阶段定义旁硬编码的技能名，一技能一钮） */
-  .stage .skillrow { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; }
-  .stage .skillrow button { font-size: 1.1rem; padding: 0.1rem 0.9rem; }
 
   .next { display: flex; align-items: center; gap: 1.2rem; border-left: 3px solid var(--fd-accent); }
   .next.done-all { border-left-color: var(--fd-ok); }
@@ -213,6 +246,8 @@
   tr.rootrow.bad { cursor: default; }
   tr.rootrow.bad:hover { background: transparent; }
   tr.rootrow.bad .name, tr.rootrow.bad .sub { color: var(--fd-ink-muted); }
+  /* 行内「开为标签页」：总览不只是「看」，还是「进入」 */
+  tr.rootrow .opentab { font-size: 1.1rem; padding: 0.1rem 0.8rem; margin-left: 0.6rem; white-space: nowrap; }
 
   .empty { text-align: center; padding: 4rem 2rem; }
   pre.agreement { text-align: left; background: var(--fd-code-bg); border: 1px dashed var(--fd-rule); border-radius: var(--fd-radius-btn); padding: 1.4rem; white-space: pre-wrap; font-size: 1.25rem; font-family: var(--fd-font-mono); color: var(--fd-ink-body); }
@@ -271,6 +306,20 @@
   .frow label { color: var(--fd-ink-muted); font-size: 1.25rem; text-align: right; }
   .frow input { width: 100%; }
   .frow input[type="checkbox"] { width: auto; justify-self: start; }
+  /* 下拉不在 100% 那一支里（轮询模式 / 界面缩放两档都是短的，让它们撑满反而不像下拉），
+     但指引词那五个面名比它们长一截——加上限，免得把 14rem+1fr 的格撑破设置框。 */
+  .frow select { max-width: 100%; }
+  /* 指引词编辑区（custom-guides 票 02，guides-prefix 票 01 压矮）：指引词分区那两个正文 textarea。
+     高度走 rem 才跟着缩放档一起长缩（min-height 留在 rem 基准上），resize 留给使用者自己拖。
+     行数（markup 的 rows）与这条最小高度是两处独立事实，必须同时动——只动一处，另一处会赢 */
+  .frow textarea { width: 100%; min-height: 6rem; resize: vertical; }
+  /* 生效预览：只读的一段长文，给一个自己的滚动区，免得一行长指引词把整窗撑到底 */
+  .frow .guide-preview { max-height: 14rem; overflow: auto; margin: 0; padding: 0.8rem 1rem; background: var(--fd-paper); border: 1px solid var(--fd-rule-soft); border-radius: var(--fd-radius-btn); font-family: var(--fd-font-mono); font-size: 1.2rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  /* 预览里的前缀那一眼：与正文分得开的唯一标记就是字色（跟着主题走，业务样式零裸值）。
+     它得能被认出来——使用者在预览里分不清哪半句是自己填的，面板就等于在替他们猜 */
+  .frow .guide-preview .gp-pfx { color: var(--fd-accent); }
+  /* 同一格里并排的两个按钮（「复制当前效果」 + 「恢复默认…」）：grid 的控件列放不下两个直接子元素 */
+  .frow .btnline { display: flex; flex-wrap: wrap; gap: 1.2rem; }
   .frow .hint { grid-column: 2; color: var(--fd-ink-muted); font-size: 1.2rem; }
   .factions { display: flex; align-items: center; gap: 1.2rem; padding: 1.4rem 0 0; }
   .factions .hint { color: var(--fd-bad); font-size: 1.2rem; }

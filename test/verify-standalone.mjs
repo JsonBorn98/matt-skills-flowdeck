@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * flowdeck/verify-standalone.mjs — 流程板独立验证（不依赖 npm 包；
+ * flowdeck/test/verify-standalone.mjs — 流程板独立验证（不依赖 npm 包；
  * jsdom 是可选的：仓库里装了就真跑界面，拷出去没装就自动跳过那一组）。
  *
  * 覆盖场景：
@@ -47,7 +47,7 @@
  *                                指引词、桌面通知、报错措辞三处人话都随语言，未知 code 回退服务端原文；
  *                                中文态逐字节零回归（词表 zh 列与改动前拼装结果全等）。
  *  28. 技能介绍英文（票 03）     → /api/skills 与单篇认 ?lang（不带参数逐字节不变、英文只换 title/summary
- *                                与正文，骨架仍以中文目录为单一真相）；36 篇同名镜像逐篇对齐；
+ *                                与正文，骨架仍以中文目录为单一真相）；37 篇同名镜像逐篇对齐；
  *                                弹窗按语言取篇、缺镜像回退中文并挂标注。
  *  29. 静态壳取词通道（票 04）   → markup 的 data-i18n* 键都在词表里、三条属性通道的中文默认态与词表
  *                                逐字一致；英文态四条通道都取得到词且取的是英文列（空白页面骗得过
@@ -63,8 +63,75 @@
  *                                「外观」区的 <option> 值域同集；head 防闪读数排在样式表之前；jsdom 里
  *                                切档落对 data-ui-scale 并写 flowdeck-ui-scale、缺省不写属性即中档、
  *                                重开尊重记忆、野值回落中档。
+ *  33. 指引词零工程习惯（custom-guides 01）→ 默认指引词不预设任何工程习惯（ADR-0004）。查两条**规则**、
+ *                                不查逐字原文：① 零 git 指令——出厂固定文案（四个阶段格的全部状态分支 ×
+ *                                中英两列 = 五面里的四面，加票行复制词，再加同样出厂固定的起步工作
+ *                                约定）里 git 零出现；② 不点名 Matt 技能包以外的技能——包内技能名取自
+ *                                docs/skill-intros/ 的 frontmatter，扫明写的「X 技能 / X skill」两种写法
+ *                                （直说的「to-spec 技能」与带括号备选的「grilling（或 wayfinder）技能」，
+ *                                局限与 ADR 并列承认）。票行与收尾（implementDone）的「不提合并」负向钉
+ *                                降级保留为回归防护；两份 README 的起步约定第 4 步已缩成指针，钉它不再
+ *                                逐字复制权威原文。
+ *  34. 指引词可整段改写 · 五面铺开（custom-guides 02 + 03）→ config.json 的 guides 字段：逐形状校验
+ *                                （非法含面内多余键一律整体 400 且一个字不写盘、错误码稳定）、applied.immediate、
+ *                                手改下一拍生效、写盘保留「说明」与「字段说明」、服务端只搬原值不参与拼装（面名不写死，
+ *                                面上额外键剔除，缺面/空串/清空皆合法）；界面上五面（四个阶段格 + 票行）各设自定义
+ *                                段各复制一次都走该面自己的段，面下拉带空态（不默认落在某一面）、切面即换内容与
+ *                                预览、下拉里四个阶段名读载荷 stageNames、只填中文时英文界面仍复制内置英文段、
+ *                                只敲全白等同没填（有内容的边缘空白原样带出）、预览与复制同步回落、预填来自载荷、
+ *                                保存只提交变更字段（改动中英成对发、五面并存时只换当前面）、恢复默认只清当前面；
+ *                                票行那面 {key}/{path}/{title} 实填、其余四面无槽；config.example.json 与两份
+ *                                README 的 config 段同步了 guides 字段。
+ *                                必改的既有缺陷：设置弹窗焦点圈禁那条测试的选择器补上 textarea。
+ *  35. 项目标签纯函数（project-tabs 01）→ 从 index.html 的 TAG_FN 区直接求值（不复制第二份）：
+ *                                emoji 派生（同目录恒同图、池内无重复、不同名散开）、开卡（去重/上限 8）、
+ *                                关卡（右邻优先、无右邻落左邻、全关落 -1）、读回清洗、补位（含满额换位）。
+ *  36. 项目标签条（project-tabs 01）→ HTTP：切标签即换根写盘，root 恒等于活跃卡目录、
+ *                                「说明」「字段说明」与 pollMs 一次不丢；jsdom：卡面渲染与生命周期
+ *                                （开/切/关、去重落已有卡、上限拦截、空态）、折叠与折叠态持久化、
+ *                                重开页面原样恢复、页面加载以服务端追踪目录补位、每卡界面状态按目录分桶。
+ *  37. 切换条减负（ui-declutter 01）→ 顶部 effort 切换条按 chain.complete 分组：进行中平铺在前、
+ *                                「✓ 完工 (n)」折叠入口、展开时的完工 tab、「全部」垫底；计数中英双语、
+ *                                入口可 Tab 到达且 aria-expanded 如实；选中项例外（选中的完工 effort 照常
+ *                                平铺、切走才收）；展开态只存会话变量（进渲染签名，刷新回落收起、零新
+ *                                localStorage 键）、折叠展开全程零写请求。
+ *  38. 流程链技能入口（ui-declutter 02）→ 链格内的大按钮行退役（stage.skill.* 词条与 .skillrow 样式
+ *                                零残留）、标题行改弹性布局（标题 flex:1 + min-width:0、「？」flex:none）
+ *                                并钉住这两个关键声明、「？」可 Tab 到达、开弹窗即定位聚合页 flowchain
+ *                                且阻断冒泡、聚合页在导航里是总览分类下的普通条目；聚合页与英文镜像
+ *                                文件级钉（overview 归类、次序紧跟总览篇、slug 过名字白名单、按四阶段
+ *                                分节并内链各阶段技能、镜像只译 title/summary 与正文不带分类与次序）。
+ *  39. 挂起与恢复的刷新语义（project-tabs 02）→ jsdom：挂起卡零请求（fetch 桩按发出时的追踪目录
+ *                                记账，挂起期间每一个 /api/state 都属于活跃卡，展示档亦不破例）、
+ *                                卡面摆出离开那一刻的最近刷新时间且挂起期间原样不动；切回挂起卡逐段
+ *                                断言中间态——先呈现旧内容与旧「最近刷新」→ toast「已恢复刷新」→
+ *                                立即补上一拍最新内容；挂着两张卡时刷新模式三档行为不受扰；全关即
+ *                                全挂起（三档下零定时器零请求零桌面通知；「全关」是使用者明说
+ *                                「我不想它在动了」，连手动「立即刷新」一并停用、强行触发也零请求，
+ *                                空态把这个决定说出口，开一张标签即收回；空态也不被任何一拍——含
+ *                                主动刷新与迟到的那一拍——自动摆回来）；失效目录不主动探测磁盘、
+ *                                切回失败沿用既有失败提示并停留原卡且不谎报恢复；换根落定前发出、
+ *                                落定后回来的那一拍整拍丢弃；追踪目录被别处换掉而留在挂起的那张，
+ *                                同样按离开时原样存下内容与时刻。
+ *  40. 指引词前缀（guides-prefix 01）→ config.json 的 guidesPrefix 字段：形状 { 面名: 字符串 }（比 guides
+ *                                窄一维——中英不分列，硬撑两列会造出界面表示不了的状态），逐形状校验（面值
+ *                                非字符串/非对象与 __proto__ 一律整体 400 且一个字不写盘、错误码独立一个
+ *                                config.guides-prefix）、applied.immediate、手改下一拍生效、写盘保留「说明」与
+ *                                「字段说明」、服务端只搬原值不参与拼装（内置段里不出现前缀）、面名原样透传不拦、
+ *                                缺面/空串/整份清空皆合法；界面上链格/下一步卡与票行两处出口走同一段拼装
+ *                                （= 前缀 + 空行 + 正文；票行先填槽再拼前缀，所以文件名里带 {key} 的票不被二次
+ *                                加工），两面各填各的互不串台，空前缀正文原样（连一个空行都不多）、空串与全空白
+ *                                等同没填、非空则原样贴出，自定义段与前缀同时生效，预览含前缀且前缀那一眼可与
+ *                                正文区分，「复制当前效果」读已存值（未存草稿时给已存那份、草稿与已存相同时与
+ *                                预览逐字一致、阶段面无 effort 时禁用、未选面时禁用），恢复默认清正文而前缀原样
+ *                                留着、换面再切回前缀不丢，负面项：完工收尾文案/工作约定/建骨架指令三处不带前缀
+ *                                且逐字与今天一致、服务端下发的阶段段里不出现前缀；文件级：markup 有前缀输入行与
+ *                                「复制当前效果」按钮（标签无省略号）、两个 textarea 的行数与样式表最小高度都降
+ *                                到位（字面量断言，三层里最脆的一条，保留它只为让「被谁又调高了」有人发现）、
+ *                                样式表不为它新开 id 选择器，config.example.json 与两份 README 讲清 guidesPrefix，
+ *                                CONTEXT.md 有「前缀」词条且那句「唯一以…为身份」已改掉。
  *
- * 跑法：node verify-standalone.mjs（全绿输出 OK，任何失败退出码非 0）
+ * 跑法：node test/verify-standalone.mjs（全绿输出 OK，任何失败退出码非 0）
  */
 
 import assert from 'node:assert/strict'
@@ -75,12 +142,16 @@ import { spawn } from 'node:child_process'
 import os from 'node:os'
 import nodePath from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { scanWorkspace } from './scan.mjs'
-import { parseMd } from './lib/parse.mjs'
-import { closedKeySet, isFrontierTicket, deriveChain, FLOW_STAGES } from './flowchain.mjs'
-import { startServer, loadConfig, resolveRoot, normalizeRecentRoots, touchRecentRoot, RECENT_ROOTS_LIMIT } from './server.mjs'
+import { scanWorkspace } from '../src/scan.mjs'
+import { parseMd } from '../src/lib/parse.mjs'
+import { closedKeySet, isFrontierTicket, deriveChain, FLOW_STAGES } from '../src/flowchain.mjs'
+import { startServer, loadConfig, resolveRoot, normalizeRecentRoots, touchRecentRoot, RECENT_ROOTS_LIMIT, normalizeGuides, normalizeGuidesPrefix } from '../src/server.mjs'
 
 const HERE = nodePath.dirname(fileURLToPath(import.meta.url))
+// 仓库根与应用目录：verify 搬进 test/ 后，读仓库级文件（docs/、README、config.example.json）走 ROOT，
+// 读应用资源（index.html、styles/、server.mjs）走 APP；HERE 只是 test/ 自己。
+const ROOT = nodePath.resolve(HERE, '..')
+const APP = nodePath.join(ROOT, 'src')
 
 let passed = 0
 function ok(name) {
@@ -121,7 +192,7 @@ function rawHttp({ method, url, headers = {}, body = '' }) {
 /** 起一个真实 CLI 子进程（server.mjs 的命令行入口只有直接运行时才走，进程内测不到）。 */
 function runCli(args) {
   return new Promise((resolve, reject) => {
-    const p = spawn(process.execPath, [nodePath.join(HERE, 'server.mjs'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const p = spawn(process.execPath, [nodePath.join(APP, 'server.mjs'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
     let out = ''
     let err = ''
     p.stdout.on('data', (d) => { out += d })
@@ -263,7 +334,7 @@ async function runScenarios(tmp) {
 
     // 唯一实现的等价断言：parseMd 的标题 = parseDocStructure 的标题（对任意输入逐字一致）；
     // parseMapBody 的区块 = parseDocStructure(normalizeBody) 的区块（输出形状不变是硬约束）。
-    const parseMod = await import('./lib/parse.mjs')
+    const parseMod = await import('../src/lib/parse.mjs')
     for (const text of [T1_B, T2_B, SPEC_B, MAP_B, '', '   \n\n  ', '# 只有正文没有区块\n\n段落一。\n', '导语在前\n\n# 后出现的标题\n', '#x 无空格井号\n']) {
       assert.deepEqual(parseMod.parseDocStructure(text).title, parseMod.parseMd(text, { key: '01', parentKey: '00' }).title, 'parseMd 标题必须出自 parseDocStructure：' + JSON.stringify(String(text).slice(0, 20)))
     }
@@ -423,7 +494,7 @@ async function runScenarios(tmp) {
       comments: [{ author: { login: 'eve' }, authorAssociation: '', body: '', createdAt: '2026-09-14T12:00:00Z', updatedAt: '2026-09-14T12:00:00Z' }],
     },
   ]
-  const cmParse = await import('./lib/parse.mjs')
+  const cmParse = await import('../src/lib/parse.mjs')
   for (const f of COMMENTS_FIXTURES) {
     assert.deepEqual(cmParse.parseMd(f.text, { key: '01', parentKey: '00' }).comments, f.comments, 'Comments 夹具「' + f.name + '」应解析出期望输出')
   }
@@ -552,10 +623,123 @@ async function runScenarios(tmp) {
     '载荷里的阶段名/副题 en 列 = FLOW_STAGES 英文列')
   ok('指引词英文列：四阶段证据/指引/复制词/推定标注两列同支、阶段名/副题也随载荷按语言下发、英文列零中文、判据字段名（Status/Blocked by/Destination/Not yet specified）与路径不随语言')
 
+  // ── 指引词零工程习惯（custom-guides 票 01，ADR-0004）：默认指引词不写死任何工程纪律。这组查两条
+  //    **规则**、不再查逐字原文——逐字钉每次改措辞都要全文对照，而 README 里那份逐字复制品已经这样漂过
+  //    一次（英文「起步约定第 4 步」与 index.html 权威源对不上，直到本次一并收敛成指针）。
+  //
+  //    ① 零 git 指令：五面内置段的中英两列里 git 零出现。阶段格指引词随状态分支而变（完工 / 推定 /
+  //       迷雾未清 / 无票可实现 / 带阻塞尾巴……），所以穷举场景把每个分支的文案都收齐再扫——只扫一个
+  //       场景等于给没扫到的分支留后门，规则会退化成「主干那一句零 git」。这里刻意比票面写的「零 `git `」
+  //       更宽一档（整个 git 字样都算），因为 ADR 的口径是「默认指引词一个字 git 都不提」。
+  //    ② 不点名 Matt 技能包以外的技能：包内技能名取自 docs/skill-intros/ 的 frontmatter，逐段扫明写的
+  //       「X 技能」与英文同形的「X skill」两种形式。局限与 ADR 并列承认：只认这两种明写形式、不做全文
+  //       语义判断——换个说法绕过去它看不见，这是自愿接下的代价。
+  //
+  //    票行与收尾（implementDone）的「不提合并」负向钉**保留**但降级：回退后它们本就不含 git，而
+  //    「合回 main / merge back」不经过 git 字样、规则①盖不住，留着防的就是「以后又织回来」。──
+  const gwHtml = await fs.readFile(nodePath.join(APP, 'index.html'), 'utf8')
+
+  // 扫的面：四阶段格（copyText 即 hint 逐字）× 场景全集，再加票行复制词与起步工作约定。
+  // 场景刻意挑满：每格至少覆盖「已完工」与其未完工的各个分支，否则扫到的只是同一句话。
+  const gwMapDone = { exists: true, destination: 'd', fogCount: 0 }
+  const gwSpecDone = { exists: true, contentLength: 9 }
+  const gwScenarios = [
+    ['空 effort', {}],
+    ['有 map 未写 Destination', { map: { exists: true, destination: '', fogCount: 0 } }],
+    ['有 map 迷雾未清', { map: { exists: true, destination: 'd', fogCount: 2 } }],
+    ['map 就绪 · 无 spec', { map: gwMapDone }],
+    ['map 就绪 · spec 在盘', { map: gwMapDone, spec: gwSpecDone }],
+    ['无 map 但有票（推定分支）', { tickets: [{ key: '01', state: 'open', blockedBy: [] }] }],
+    ['票目录在但没票', { map: gwMapDone, spec: gwSpecDone, tickets: [] }],
+    ['有票未关', { map: gwMapDone, spec: gwSpecDone, tickets: [{ key: '01', state: 'open', blockedBy: [] }] }],
+    ['有票被依赖阻塞（阻塞尾巴分支）', { map: gwMapDone, spec: gwSpecDone, tickets: [{ key: '01', state: 'open', blockedBy: ['00'] }, { key: '00', state: 'open', blockedBy: [] }] }],
+    ['票全关（收尾分支）', { map: gwMapDone, spec: gwSpecDone, tickets: [{ key: '01', state: 'closed', blockedBy: [] }] }],
+  ]
+  const gwSegments = []
+  for (const [label, extra] of gwScenarios) {
+    const chain = deriveChain(Object.assign({ slug: 'deck' }, extra))
+    for (const st of chain.stages) {
+      gwSegments.push({ face: `${st.id}·${label}·中文`, faceId: st.id, lang: '中文', text: st.copyText })
+      gwSegments.push({ face: `${st.id}·${label}·英文`, faceId: st.id, lang: '英文', text: st.en.copyText })
+    }
+  }
+  const gwTicketM = /'copy\.ticket': \{ zh: '([\s\S]*?)', en: '([\s\S]*?)' \},/.exec(gwHtml)
+  assert.ok(gwTicketM, '词表含 copy.ticket 词条（zh/en 两列都切得出来）')
+  gwSegments.push({ face: '票行复制词·中文', faceId: 'ticket', lang: '中文', text: gwTicketM[1] })
+  gwSegments.push({ face: '票行复制词·英文', faceId: 'ticket', lang: '英文', text: gwTicketM[2] })
+  // 起步工作约定（空态页那段两栏并列的步骤）不是五面之一，但它同样是出厂固定文案、同样发给使用者，
+  // 且正是本次回退的第三处——一并纳入，免得规则只守住两个面。
+  const gwAgreeFrom = gwHtml.indexOf("'empty.agreement': {")
+  const gwAgreeEn = gwHtml.indexOf('en: [', gwAgreeFrom)
+  const gwAgreeTo = gwHtml.indexOf('\n  },', gwAgreeFrom)
+  assert.ok(gwAgreeFrom > 0 && gwAgreeEn > gwAgreeFrom && gwAgreeTo > gwAgreeEn, '词表含 empty.agreement 段（两栏都切得出来）')
+  gwSegments.push({ face: '起步工作约定·中文', text: gwHtml.slice(gwAgreeFrom, gwAgreeEn) })
+  gwSegments.push({ face: '起步工作约定·英文', text: gwHtml.slice(gwAgreeEn, gwAgreeTo) })
+
+  // 空扫等于白扫：先钉「确实扫到了一批面、且去重后确实是多段不同文案」，后面的零断言才有意义。
+  // 用下限而不是 assert.equal 是有意的：往后加一个场景是常事，等值会让这条护栏在正当增补时误炸；
+  // 它要挡的是「某个面整个没被扫到」这种塌方，真塌了数量一定掉到下限以下。
+  assert.ok(gwSegments.length >= 80, `扫的面数够（${gwSegments.length} 段 = 四阶段格 × 场景 × 中英 + 票行 + 工作约定）`)
+  // 面覆盖钉（票 03）：两条规则要盖的是**五面中英两列**，不是「扫到了一批文案」就算数。
+  // 逐面逐列清点——漏掉整整一面的话，上面的条数下限照样过得去（别的面多扫几遍就补回来了），
+  // 只有按面点名才挡得住这种塌方。
+  for (const faceId of ['grill', 'spec', 'tickets', 'implement', 'ticket']) {
+    for (const col of ['中文', '英文']) {
+      assert.ok(gwSegments.some((s) => s.faceId === faceId && s.lang === col), `五面中英两列都扫到了：${faceId}·${col}`)
+    }
+  }
+  const gwDistinct = new Set(gwSegments.map((s) => s.text))
+  assert.ok(gwDistinct.size >= 12, `状态分支确实被扫到（去重后 ${gwDistinct.size} 段不同文案）`)
+
+  // ① 零 git 指令
+  for (const seg of gwSegments) {
+    assert.doesNotMatch(seg.text, /\bgit\b/, `默认指引词零 git 措辞：${seg.face} 里出现了 git`)
+  }
+  // ② 不点名 Matt 技能包以外的技能
+  const gwSkillNames = new Set()
+  for (const f of await fs.readdir(nodePath.join(ROOT, 'docs', 'skill-intros'))) {
+    if (!f.endsWith('.md') || f === 'README.md') continue
+    const head = (await fs.readFile(nodePath.join(ROOT, 'docs', 'skill-intros', f), 'utf8')).split('\n').slice(0, 12).join('\n')
+    const nm = /^name:\s*(\S+)/m.exec(head)
+    if (nm) gwSkillNames.add(nm[1])
+  }
+  assert.ok(gwSkillNames.size > 10, `包内技能名集合取自 frontmatter（取到 ${gwSkillNames.size} 个）`)
+  // 「X 技能」有两种写法，两种都得认：直说的「to-spec 技能」，以及带括号备选的
+  // 「grilling（或 wayfinder）技能」/「grilling (or wayfinder) skill」。只认直说那一支的话，
+  // 恰恰是 grill 那面的两个技能名（内置文案里唯一点名两个技能的地方）会整个漏检——
+  // 括号挡在名字和「技能」之间，不给它留位置，正则就一路滑过去、这条规则空转。
+  const gwSkillRe = /([A-Za-z][\w-]*)(?:\s*[（(]\s*(?:或|or)\s*([A-Za-z][\w-]*)\s*[）)])?\s*(?:技能|skill)/g
+  let gwSkillHits = 0
+  for (const seg of gwSegments) {
+    for (const hit of seg.text.matchAll(gwSkillRe)) {
+      gwSkillHits++
+      for (const name of [hit[1], hit[2]].filter(Boolean)) {
+        assert.ok(gwSkillNames.has(name), `默认指引词只点名包内技能：「${name} 技能」（${seg.face}）不在 docs/skill-intros/ 的 frontmatter 名单里`)
+      }
+    }
+  }
+  // 规则自己也得证明自己咬得着：内置文案里 grill 那面明写两个技能名，扫不到就是正则退化了。
+  assert.ok(gwSkillHits >= 8, `技能名规则确实咬得着（扫到 ${gwSkillHits} 处点名；括号备选那一支也认）`)
+  // 降级保留的负向钉：合回措辞不经过 git 字样，规则①盖不住，单留两条钉防重新织入。
+  assert.doesNotMatch(gwTicketM[1] + gwTicketM[2], /合回|merge back/, '票行指引不提合并（回归防护：回退后本就没有，防的是重新织入）')
+  const gwDoneChain = deriveChain({ slug: 'deck', map: gwMapDone, spec: gwSpecDone, tickets: [{ key: '01', state: 'closed', blockedBy: [] }] })
+  const gwDoneImpl = gwDoneChain.stages.find((s) => s.id === 'implement')
+  assert.doesNotMatch(gwDoneImpl.hint + gwDoneImpl.en.hint, /合回|merge back/, '收尾（implementDone）文案不提合并（回归防护：回退后本就没有，防的是重新织入）')
+  // 两份 README 的起步约定第 4 步缩成指向产品内「工作约定」的指针：它们曾与 index.html 的权威源
+  // 逐字重复，而英文那份已经漂过一次（"4. Implementation:" 少了 (implement)、"as each ticket finishes"
+  // 与中文那句也对不上），没人发现。钉两件事——不带 git 字样、不再逐字复制权威原文。
+  for (const readme of ['README.zh-CN.md', 'README.md']) {
+    const txt = await fs.readFile(nodePath.join(ROOT, readme), 'utf8')
+    assert.doesNotMatch(txt, /git switch/, `${readme} 不含 \`git switch\` 字样（第 4 步已缩成指针）`)
+    assert.doesNotMatch(txt, /逐票实现；每完成一张票|change its Status line to resolved/, `${readme} 不再逐字复制第 4 步原文（权威源只有产品内那份）`)
+    assert.doesNotMatch(txt, /合回 main|merge back to main/, `${readme} 不含合回 main 措辞`)
+  }
+  ok(`指引词零工程习惯（custom-guides 01 / ADR-0004）：${gwSegments.length} 段内置文案（去重 ${gwDistinct.size} 段）零 git 措辞；点名的技能全在 Matt 包内（frontmatter 名单 ${gwSkillNames.size} 个）；票行与收尾文案不提合并；两份 README 第 4 步已缩成指针`)
+
   // ── 静态壳取词绑定（english-ui 票 02，票 04 实拍补的洞）：markup 的 data-i18n* 键不许悬空，
   //    写死的中文默认态不许与词表漂移。悬空键把标签擦成空白，而「零中文残留」照样通过——所以这一组
   //    在文件级钉：键都在词表里 + title/placeholder/aria 三条通道的 markup 默认值逐字等于中文列。──
-  const deckHtml = await fs.readFile(nodePath.join(HERE, 'index.html'), 'utf8')
+  const deckHtml = await fs.readFile(nodePath.join(APP, 'index.html'), 'utf8')
   const wlFrom = deckHtml.indexOf('var UI_TEXT = {')
   const wlTo = deckHtml.indexOf('\n}\n', wlFrom)
   assert.ok(wlFrom > 0 && wlTo > wlFrom, '词表要能从 index.html 定位（界面人话的单一来源）')
@@ -572,19 +756,32 @@ async function runScenarios(tmp) {
       bound++
       if (!SHELL_TEXT[key]) { dangling.push(attr + '=' + key); continue }
       const dom = SHELL_CHANNELS[attr]
-      if (dom === null) continue // 正文通道由 jsdom 那组按当前语言逐字钉，这里不比 innerHTML
+      if (dom === null) continue // 正文通道走下面那段（innerText 不是属性，这里取不到）
       const literal = (attrs.find((a) => a[0] === dom) || [])[1]
       if (literal !== SHELL_TEXT[key].zh) drifted.push(key + '：markup ' + JSON.stringify(literal) + ' ≠ 词表 ' + JSON.stringify(SHELL_TEXT[key].zh))
     }
   }
+  // 正文通道（data-i18n → textContent）也要逐字钉：不钉的话「词表改了、markup 里那份中文默认态忘了跟」
+  // 就没人发现（运行期 applyStaticCopy 首帧即覆写，用户看不见，而 jsdom 那组只钉英文列、且发生在覆写之后）。
+  // 字符串法而非 jsdom：本组在 jsdom 门槛之前，拷出去没装 jsdom 也得跑。留空的元素豁免——它的字由 JS 填。
+  let bodyBound = 0
+  for (const m of deckHtml.slice(deckHtml.indexOf('<body')).matchAll(/<([a-zA-Z]+)([^>]*\sdata-i18n="([^"]+)"[^>]*)>([\s\S]*?)<\/\1>/g)) {
+    const key = m[3]
+    if (!SHELL_TEXT[key]) continue // 悬空已由上面那条钉
+    bodyBound++
+    const inner = m[4].replace(/<[^>]+>/g, '')
+    if (!inner.trim()) continue // 留空 = JS 填（如 foot.note），不是漂移
+    if (inner !== SHELL_TEXT[key].zh) drifted.push(key + '：markup 正文 ' + JSON.stringify(inner) + ' ≠ 词表 ' + JSON.stringify(SHELL_TEXT[key].zh))
+  }
   assert.ok(Object.keys(SHELL_TEXT).length > 200, '词表整块求值成功（' + Object.keys(SHELL_TEXT).length + ' 条）')
   assert.ok(bound >= 40, '静态壳的取词绑定全部进入扫描面（' + bound + ' 条）')
+  assert.ok(bodyBound >= 40, '正文通道的绑定也全部进入扫描面（' + bodyBound + ' 条）')
   assert.deepEqual(dangling, [], 'markup 每个 data-i18n* 键都在词表里（悬空即空白，零残留扫不出来）')
   assert.deepEqual(drifted, [], '写死的中文默认态与词表中文列逐字一致（中文态字节不变这条硬约束的静态壳侧）')
-  ok('静态壳取词绑定（文件级）：data-i18n* 键不悬空，title/placeholder/aria 三通道的 markup 中文默认态与词表中文列逐字一致')
+  ok('静态壳取词绑定（文件级）：data-i18n* 键不悬空，title/placeholder/aria 三通道与正文通道的 markup 中文默认态都与词表中文列逐字一致')
 
   // ── 流式缩放基座（ui-appearance 票 03）：jsdom 无布局能力，本组只钉「接线存在」，不断言像素尺寸 ──
-  const appCss = await fs.readFile(nodePath.join(HERE, 'styles', 'app.css'), 'utf8')
+  const appCss = await fs.readFile(nodePath.join(APP, 'styles', 'app.css'), 'utf8')
   assert.match(appCss, /--fluid-base:\s*clamp\(10px, 0\.5vw \+ 4\.6px, 11\.5px\)/, '流式基值声明在案（≤1080 视口落 10px 下限）')
   assert.match(appCss, /--ui-scale:\s*1;/, '缩放档倍率缺省 1（中档 = 与改造前一致）')
   assert.match(appCss, /html\s*\{\s*font-size:\s*calc\(var\(--fluid-base\) \* var\(--ui-scale\)\)/, '根字号 = 流式基值 × 缩放档（一个乘法管整个界面）')
@@ -603,8 +800,11 @@ async function runScenarios(tmp) {
   // 边界另一侧：组件定宽与圆角/边框刻意留 px，不随缩放档变化
   assert.match(appCss, /\.menu\s*\{[^}]*width: 400px/, '菜单定宽保持 px')
   assert.match(appCss, /\.modal \.box\.settings-box\s*\{[^}]*width: 560px/, '设置盒定宽保持 px')
-  assert.match(appCss, /\.rootbox #rootInput\s*\{[^}]*width: 250px/, '地址输入框定宽保持 px')
   assert.match(appCss, /\.chip\s*\{[^}]*border-radius: 999px/, '圆角保持 px')
+  // 标签卡是流式组件（跟着视口与缩放档伸缩），只有「封顶宽度」留 px 防长路径名撑爆一行
+  assert.match(appCss, /\.tabcard\s*\{[^}]*max-width: 24rem/, '项目标签卡走流式宽度 + rem 封顶，不钉死 px')
+  // 旧地址栏组合框退役（project-tabs 票 01：换目录心智由标签条接管，界面上不留第二套）
+  assert.ok(!/rootInput|rootMenuBtn|switchBtn/.test(appCss), '旧单目录输入框与「换目录」按钮的样式已随控件退役')
   // token 纪律规则 1 的机器面（双轴评审收口）：裸值一旦溜进业务样式，两份 README 的「零裸值」即成空话，
   // 而换肤就会漏这一处——暗色主题下那个琥珀点就是三套里唯一不随肤走的颜色。
   assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(appCss), '业务样式零裸十六进制色值（裸值只准住 styles/tokens-*.css）')
@@ -614,8 +814,62 @@ async function runScenarios(tmp) {
     '业务样式零裸字体栈（只写 var(--fd-font-*) 或 inherit）')
   ok('流式缩放基座（文件级）：--fluid-base/--ui-scale/根字号乘法与主容器 clamp 接线在案、字号与间距声明零 px（缩放靠 rem 生效）、组件定宽与圆角刻意留 px、业务样式零裸色值与零裸字体栈（token 纪律规则 1 的机器面）；不断言像素尺寸（jsdom 无布局）')
 
+  // ── 项目标签纯函数（project-tabs 票 01）：从 index.html 的 TAG_FN 区直接求值 ──
+  //    零构建单文件没法让测试 import 界面的纯函数；这里按标记切出来原样求值（同 UI_TEXT 的做法），
+  //    测的就是界面真正在跑的那份实现，而不是测试里抄的第二份。
+  const tabFnFrom = deckHtml.indexOf('/* TAG_FN_BEGIN')
+  const tabFnTo = deckHtml.indexOf('/* TAG_FN_END')
+  assert.ok(tabFnFrom > 0 && tabFnTo > tabFnFrom, '项目标签纯函数区要能从 index.html 定位（TAG_FN_BEGIN/END 标记）')
+  const TABFN = new Function(deckHtml.slice(tabFnFrom, tabFnTo) +
+    '\nreturn { tabName, tabHash, tabEmoji, tabOpen, tabClose, tabNormalize, tabAlign, TAB_LIMIT, TAB_EMOJI }')()
+  const { tabName, tabEmoji, tabOpen, tabClose, tabNormalize, tabAlign } = TABFN
+
+  // emoji 派生：固定池、同目录恒同图、不同名尽量散开（判准是外部可观察的取词，不是内部哈希值）
+  assert.equal(TABFN.TAB_LIMIT, 8, '标签上限 8 张')
+  assert.equal(TABFN.TAB_EMOJI.length, 16, '固定 emoji 池 16 个')
+  assert.equal(new Set(TABFN.TAB_EMOJI).size, TABFN.TAB_EMOJI.length, '池内无重复项')
+  assert.deepEqual([tabName('/a/b/c'), tabName('c'), tabName('/a/b/'), tabName('')], ['c', 'c', '/a/b/', ''], '展示名取 basename')
+  assert.equal(tabEmoji('/a/flowdeck'), tabEmoji('/z/flowdeck'), '同目录名恒同图（与父目录无关）')
+  assert.equal(tabEmoji('/a/flowdeck'), tabEmoji('/a/flowdeck'), '同一输入两次同图（纯函数）')
+  assert.ok(TABFN.TAB_EMOJI.includes(tabEmoji('/tmp/x')), '取到的图必在池内')
+  const spread = new Set(Array.from({ length: 40 }, (_, i) => tabEmoji('/w/proj-' + i)))
+  assert.ok(spread.size >= 10, '不同目录名尽量散开（40 个名字落到 ' + spread.size + ' 个图）')
+
+  // 开卡：同目录去重落到已有卡；超上限拒绝且不改原表
+  let open = tabOpen([], '/p/a')
+  assert.deepEqual([open.added, open.index, open.limited, open.list], [true, 0, false, ['/p/a']])
+  open = tabOpen(['/p/a', '/p/b'], '/p/a')
+  assert.deepEqual([open.added, open.index, open.limited, open.list], [false, 0, false, ['/p/a', '/p/b']], '同目录去重落到已有卡，不出第二张')
+  const eight = Array.from({ length: 8 }, (_, i) => '/p/' + i)
+  const over = tabOpen(eight, '/p/new')
+  assert.deepEqual([over.added, over.index, over.limited, over.list], [false, -1, true, eight], '满 8 张时开新卡被拒，原表不动')
+  assert.deepEqual([tabOpen(eight, '/p/3').added, tabOpen(eight, '/p/3').limited], [false, false], '满额时开已存在的目录仍走去重（不是拒绝）')
+
+  // 关卡：关活跃卡落右邻、无右邻落左邻；关挂起卡只让活跃卡下标随位移；全关落 -1
+  assert.deepEqual(tabClose(['a', 'b', 'c'], 1, 1), { list: ['a', 'c'], active: 1, removed: true }, '关活跃卡落右邻')
+  assert.deepEqual(tabClose(['a', 'b', 'c'], 2, 2), { list: ['a', 'b'], active: 1, removed: true }, '关末位（无右邻）落左邻')
+  assert.deepEqual(tabClose(['a', 'b', 'c'], 2, 0), { list: ['b', 'c'], active: 1, removed: true }, '关挂起卡：活跃卡跟着前移一位')
+  assert.deepEqual(tabClose(['a'], 0, 0), { list: [], active: -1, removed: true }, '关掉最后一张落空态（-1）')
+  assert.deepEqual(tabClose(['a', 'b'], 0, 9), { list: ['a', 'b'], active: 0, removed: false }, '越界下标原样返回（不误伤）')
+
+  // 读回清洗：坏形状的存储值不能让标签条崩，值域夹回
+  assert.deepEqual(tabNormalize({ list: ['/a', '/a', '', null, 3, '/b'], active: 9, collapsed: true }),
+    { list: ['/a', '/b'], active: 1, collapsed: true }, '去重、剔非字符串、活跃下标夹回值域')
+  assert.deepEqual(tabNormalize(null), { list: [], active: -1, collapsed: false }, '空值落空态')
+  assert.deepEqual(tabNormalize({ list: 12 }), { list: [], active: -1, collapsed: false }, 'list 不是数组也落空态（不抛）')
+  const many = Array.from({ length: 20 }, (_, i) => '/p/' + i)
+  assert.deepEqual([tabNormalize({ list: many, active: -3 }).list.length, tabNormalize({ list: many, active: -3 }).active],
+    [8, 0], '读回也守上限 8，负下标夹回 0')
+
+  // 补位：以服务端追踪目录为真相对齐；缺卡补开置活跃；满额时占掉活跃那张（上限不破、不变式不破）
+  assert.deepEqual(tabAlign('/a', ['/a', '/b'], 1), { list: ['/a', '/b'], active: 0, added: false }, '已有对应卡 → 活跃卡对齐过去')
+  assert.deepEqual(tabAlign('/c', ['/a', '/b'], 0), { list: ['/a', '/b', '/c'], active: 2, added: true }, '无对应卡 → 补开一张置为活跃')
+  const alignedFull = tabAlign('/z', eight, 3)
+  assert.deepEqual([alignedFull.list.length, alignedFull.list[3], alignedFull.active], [8, '/z', 3], '满额且无对应卡：服务端目录占掉活跃那张')
+  ok('项目标签纯函数（文件级）：emoji 派生同目录恒同图/池内无重复/不同名散开；开卡去重与上限 8；关卡右邻优先、无右邻落左邻、全关落空态；读回清洗与补位（满额换位）')
+
   // ── 通知事件推导（票 04）：前后两拍盘点的结构化 diff，纯函数 ──
-  const { deriveEvents } = await import('./notify.mjs')
+  const { deriveEvents } = await import('../src/notify.mjs')
   const mkEffort = (slug, tickets, fogCount, currentId) => ({
     slug, title: slug,
     map: { fogCount },
@@ -623,8 +877,8 @@ async function runScenarios(tmp) {
     chain: { currentId },
     latestAt: '',
   })
-  const ROOT = '/tmp/fd-notify'
-  const snap = (efforts, extra = {}) => ({ root: ROOT, generatedAt: '2026-09-18T00:00:00Z', efforts, ...extra })
+  const NOTIFY_ROOT = '/tmp/fd-notify'
+  const snap = (efforts, extra = {}) => ({ root: NOTIFY_ROOT, generatedAt: '2026-09-18T00:00:00Z', efforts, ...extra })
   const ev = (prev, next) => deriveEvents(snap(prev), snap(next)).map((e) => e.text)
   // 各事件类：票关闭 / 票重开 / 迷雾增减 / 阶段推进 / 新 effort
   assert.deepEqual(
@@ -686,15 +940,15 @@ async function runScenarios(tmp) {
   // ── resolveRoot：配置里目录写法的解析规则 ──
   assert.equal(resolveRoot(''), process.cwd())
   assert.ok(resolveRoot('~/笔记').startsWith(os.homedir()))
-  assert.equal(resolveRoot('./sub'), nodePath.resolve(HERE, 'sub'))
+  assert.equal(resolveRoot('./sub'), nodePath.resolve(ROOT, 'sub'))
   assert.equal(resolveRoot('/tmp/abc'), nodePath.resolve('/tmp/abc'))
-  ok('resolveRoot：空=当前目录，~=主目录，相对=按本目录解析，绝对=原样')
+  ok('resolveRoot：空=当前目录，~=主目录，相对=按仓库根解析，绝对=原样')
 
   // ── 常用目录（recentRoots）：MRU 变换是导出的小纯函数 ──
   const homeRec = resolveRoot('~/flowdeck-verify-recent')
   assert.deepEqual(
     normalizeRecentRoots(['/tmp/fd-a', '/tmp/fd-a', '~/flowdeck-verify-recent', './neighbor', 42, '', null]),
-    ['/tmp/fd-a', homeRec, nodePath.resolve(HERE, 'neighbor')]
+    ['/tmp/fd-a', homeRec, nodePath.resolve(ROOT, 'neighbor')]
   )
   assert.deepEqual(normalizeRecentRoots(undefined), [])
   assert.deepEqual(normalizeRecentRoots('不是数组'), [])
@@ -707,6 +961,36 @@ async function runScenarios(tmp) {
   assert.deepEqual(touchRecentRoot(touched, '/tmp/fd-b'), touched)
   assert.deepEqual(touchRecentRoot(touchRecentRoot(['/tmp/fd-a'], '/tmp/fd-c'), '/tmp/fd-c'), ['/tmp/fd-c', '/tmp/fd-a'])
   ok('touchRecentRoot：新使用进头部；重复与 ~/ 写法归一移顶不重复；同输入同输出（幂等）')
+
+  // ── 指引词自定义段（custom-guides 票 02）：归一是导出的小纯函数，走单测而不是只从 HTTP 面验 ──
+  assert.deepEqual(normalizeGuides({ implement: { zh: '甲', en: '乙' } }), { implement: { zh: '甲', en: '乙' } })
+  assert.deepEqual(normalizeGuides({ implement: { zh: '' } }), { implement: { zh: '' } }, '空串留着——它就是「回落内置段」这一事实')
+  assert.deepEqual(normalizeGuides({ implement: {} }), { implement: {} }, '缺面合法')
+  assert.deepEqual(normalizeGuides({}), {})
+  // 面名原样透传（下一票扩到五面时服务端零改动）；面内只认 zh/en —— 多出来的键没有第二个消费者，
+  // 悄悄丢掉等于静默吞掉一个笔误，所以它是 400（与「结构非法整体拒」同一处置）
+  assert.deepEqual(normalizeGuides({ implement: { zh: '甲' }, ticket: { en: '丙' } }), { implement: { zh: '甲' }, ticket: { en: '丙' } })
+  for (const bad of [undefined, null, 'x', 7, [], { implement: 'x' }, { implement: [] }, { implement: { zh: 1 } }, { implement: { en: {} } }, { implement: { en: null } }, { implement: { zh: '甲', bogus: 1 } }, { implement: { bogus: 1 } }]) {
+    assert.equal(normalizeGuides(bad), undefined, '结构非法应回落 undefined（POST 据此 400）：' + JSON.stringify(bad))
+  }
+  // __proto__ 早拒的判据见 server.mjs normalizeGuides 的注释（读得到、又会被赋值走原型 setter，两头都不是「面」）
+  assert.equal(normalizeGuides(JSON.parse('{"__proto__":{"zh":"x"}}')), undefined, '__proto__ 不是面名，归一早拒')
+  assert.equal(Object.getPrototypeOf(normalizeGuides({ implement: { zh: '甲' } })), Object.prototype, '归一结果仍是普通对象（原型没被动过）')
+  ok('normalizeGuides：每面只取 {zh,en} 两列、面名原样透传、缺面/空串合法；非对象/面非对象/语言列非字符串/面内多余键与 __proto__ 一律回 undefined')
+
+  // ── 指引词前缀（guides-prefix 票 01）：形状比 guides 窄一维——{ 面名: 字符串 }，中英不分列。
+  //    值的维度只有一个是刻意的：硬撑成 {zh,en} 会造出「两列不等」这种界面表示不了的状态。──
+  assert.deepEqual(normalizeGuidesPrefix({ implement: '/implement' }), { implement: '/implement' })
+  assert.deepEqual(normalizeGuidesPrefix({ implement: '/implement', ticket: '/implement' }), { implement: '/implement', ticket: '/implement' }, '两面各存各的，互不继承')
+  assert.deepEqual(normalizeGuidesPrefix({ implement: '' }), { implement: '' }, '空串原样留着——它就是「空前缀 = 不贴」这一事实，由界面按非空判定')
+  assert.deepEqual(normalizeGuidesPrefix({}), {})
+  assert.deepEqual(normalizeGuidesPrefix({ 我们这面: '/我们这面' }), { 我们这面: '/我们这面' }, '面名不校验、原样透传（与 guides 同纪律）')
+  for (const bad of [undefined, null, 'x', 7, [], { implement: { zh: '/x', en: '/x' } }, { implement: 42 }, { implement: null }, { implement: ['/x'] }]) {
+    assert.equal(normalizeGuidesPrefix(bad), undefined, '结构非法应回落 undefined（POST 据此 400）：' + JSON.stringify(bad))
+  }
+  assert.equal(normalizeGuidesPrefix(JSON.parse('{"__proto__":"/x"}')), undefined, '__proto__ 不是面名，归一早拒')
+  assert.equal(Object.getPrototypeOf(normalizeGuidesPrefix({ implement: '/x' })), Object.prototype, '归一结果仍是普通对象（原型没被动过）')
+  ok('normalizeGuidesPrefix：每面就是一个字符串、面名原样透传、空串原样留着；非对象/面值非字符串/面值是对象与 __proto__ 一律回 undefined')
 
   const crowd = []
   for (let i = 0; i < RECENT_ROOTS_LIMIT + 10; i++) crowd.push('/tmp/fd-r' + i)
@@ -850,8 +1134,8 @@ async function runScenarios(tmp) {
   }
 
   // ── 配置：config.json 的 root/pollMs 生效；缺文件用默认 ──
-  assert.deepEqual(loadConfig(nodePath.join(tmp, '不存在的配置.json')), { root: '', port: 3210, host: '127.0.0.1', pollMs: 5000, pollMode: 'observe', recentRoots: [], token: '', configPath: nodePath.resolve(nodePath.join(tmp, '不存在的配置.json')) })
-  ok('配置缺省：config.json 不存在时不报错，全部字段回落默认（含 token 空 = 不启用、pollMode 观测）')
+  assert.deepEqual(loadConfig(nodePath.join(tmp, '不存在的配置.json')), { root: '', port: 3210, host: '127.0.0.1', pollMs: 5000, pollMode: 'observe', recentRoots: [], token: '', guides: {}, guidesPrefix: {}, configPath: nodePath.resolve(nodePath.join(tmp, '不存在的配置.json')) })
+  ok('配置缺省：config.json 不存在时不报错，全部字段回落默认（含 token 空 = 不启用、pollMode 观测、guides 空 = 复制内置段、guidesPrefix 空 = 不贴前缀）')
 
   const cfgHandPath = nodePath.join(tmp, 'config-handwritten.json')
   await writeFile(cfgHandPath, JSON.stringify({
@@ -859,7 +1143,7 @@ async function runScenarios(tmp) {
     recentRoots: ['/tmp/fd-hand-b', '~/flowdeck-verify-recent', '/tmp/fd-hand-b', './neighbor', 7],
   }))
   const cfgHand = loadConfig(cfgHandPath)
-  assert.deepEqual(cfgHand.recentRoots, ['/tmp/fd-hand-b', resolveRoot('~/flowdeck-verify-recent'), nodePath.resolve(HERE, 'neighbor')])
+  assert.deepEqual(cfgHand.recentRoots, ['/tmp/fd-hand-b', resolveRoot('~/flowdeck-verify-recent'), nodePath.resolve(ROOT, 'neighbor')])
   ok('配置读入：config.json 里手写的 recentRoots 按 resolveRoot 归一去重后进入配置对象')
 
   const anotherProject = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'flowdeck-other-'))
@@ -936,6 +1220,22 @@ async function runScenarios(tmp) {
     saved2 = JSON.parse(await fs.readFile(cfgPath, 'utf8'))
     assert.deepEqual(saved2.recentRoots, [nodePath.resolve(anotherProject), nodePath.resolve(tmp), '/tmp/fd-没有这个目录'])
     ok('收录去重：重复切换同一目录只移顶不重复；切到当前已是追踪目录的目录也算一次使用')
+
+    // ── 切标签 = 同一个换根请求（project-tabs 票 01）：服务端零新端点，来回切只改 root ──
+    // 最后一轮落在 anotherProject，好让下面删除端点那几行的 recentRoots 顺序接着上一组（末尾兜底重排断言已覆盖）。
+    for (const dir of [tmp, anotherProject, tmp, anotherProject]) {
+      const hop = await postJson(withCfg.url + '/api/config', { root: dir })
+      assert.equal(hop.status, 200, '切到 ' + dir + ' 成功')
+      assert.equal(hop.data.root, nodePath.resolve(dir), '应答回的 root 是归一后的那个')
+      const onDisk = JSON.parse(await fs.readFile(cfgPath, 'utf8'))
+      assert.equal(onDisk.root, nodePath.resolve(dir), 'config.json 的 root 恒等于最后切过去的（活跃）那张卡的目录')
+      assert.equal(onDisk.pollMs, 2000, '切标签不碰轮询间隔')
+      assert.equal(onDisk.说明, '这是给人看的说明。', '切标签保留人看的「说明」')
+      assert.deepEqual(onDisk.字段说明, { root: '要追踪的目录' }, '切标签保留「字段说明」')
+    }
+    const servedNow = await (await fetch(withCfg.url + '/api/state')).json()
+    assert.equal(servedNow.root, nodePath.resolve(anotherProject), '换完 /api/state 报的就是那个目录（补位规则的真相来源）')
+    ok('切标签即换根（HTTP 黑盒）：多次来回切后 config.json 的 root 恒等于活跃卡目录，pollMs 与「说明」「字段说明」一次不丢，/api/state 跟着报新目录')
 
     // ── 删除端点：防护与换目录同款；写回并返回最新列表；删未知条目幂等 ──
     const delGuard1 = await fetch(withCfg.url + '/api/recent-roots', {
@@ -1112,8 +1412,8 @@ async function runScenarios(tmp) {
   ok('技能文档接口：清单完整有序（总览最前、分类聚合）、单篇取原文 Markdown；未知/穿越/畸形转义一律 404')
 
   // ── 技能介绍英文（english-ui 票 03）：两条只读端点认 ?lang；不带参数的响应逐字节不变 ──
-  const ZH_DOCS = nodePath.join(HERE, 'docs', 'skill-intros')
-  const EN_DOCS = nodePath.join(HERE, 'docs', 'skill-intros-en')
+  const ZH_DOCS = nodePath.join(ROOT, 'docs', 'skill-intros')
+  const EN_DOCS = nodePath.join(ROOT, 'docs', 'skill-intros-en')
   /** 取中文篇 frontmatter 的某一格（测试自己读盘，与镜像对账用，不复用服务端解析器）。 */
   function fmField(raw, key) {
     const m = new RegExp('^' + key + ':[ \\t]*(.+)$', 'm').exec(raw.slice(4, raw.indexOf('\n---', 3)))
@@ -1154,7 +1454,7 @@ async function runScenarios(tmp) {
     assert.equal(enDocRaw, await fs.readFile(nodePath.join(EN_DOCS, 'tdd.md'), 'utf8'), '英文单篇 = 同名镜像篇逐字节')
     assert.match(enDocRaw, /^---\nname: tdd\n/, '英文篇同样带 frontmatter（清单与单篇共用一套结构）')
     // 语言自报头（双轴评审收口）：界面挂「暂无英文」标注以实际响应为准——英文请求撞缺镜像时头是
-    // zh，标注跟着每一次响应走，不再依赖清单快照里会过期的 noEnglish。真回退没法在整仓 36/36
+    // zh，标注跟着每一次响应走，不再依赖清单快照里会过期的 noEnglish。真回退没法在整仓 37/37
     // 全译的现状下从磁盘触发，回退路径的可见性钉在上方 jsdom 缝（stub 按 SK_SERVED 回 zh 头）。
     assert.equal((await fetch(langServer.url + '/api/skills/tdd?lang=en')).headers.get('x-flowdeck-doc-lang'), 'en', '英文镜像命中：X-FlowDeck-Doc-Lang 自报 en')
     assert.equal((await fetch(langServer.url + '/api/skills/tdd')).headers.get('x-flowdeck-doc-lang'), 'zh', '中文缺省：X-FlowDeck-Doc-Lang 自报 zh')
@@ -1163,7 +1463,7 @@ async function runScenarios(tmp) {
     assert.equal(en404.status, 404, '不存在的篇 ?lang=en 仍 404')
     assert.equal((await (await fetch(langServer.url + '/api/skills/..%2F..%2Fserver.mjs?lang=en')).text()).indexOf('root:'), -1, '穿越加 lang 也读不到仓库文件')
     assert.equal((await fetch(langServer.url + '/api/skills/%ZZ?lang=en')).status, 404, '畸形转义加 lang 仍 404')
-    // 缺篇回退的口径与磁盘同真相：今天 36/36 全译（票 03 要求），所以 noEnglish 一条都不该有；
+    // 缺篇回退的口径与磁盘同真相：今天 37/37 全译（票 03 要求），所以 noEnglish 一条都不该有；
     // 谁日后加了中文篇没跟英文篇，这条就把他指回这里（回退本身的可见性钉在界面缝，见下方 jsdom 组）。
     const missingEn = zhList.filter((s) => !existsSync(nodePath.join(EN_DOCS, s.name + '.md')))
     assert.equal(enList.filter((s) => s.noEnglish).length, missingEn.length, 'noEnglish 条数 = 磁盘缺镜像条数')
@@ -1171,16 +1471,16 @@ async function runScenarios(tmp) {
     assert.deepEqual(
       (await fs.readdir(EN_DOCS)).filter((f) => f.endsWith('.md')).sort(),
       (await fs.readdir(ZH_DOCS)).filter((f) => f.endsWith('.md')).sort(),
-      '英文目录不多不少正好那 36 篇（镜像不是第二套清单）')
+      '英文目录不多不少正好那 37 篇（镜像不是第二套清单）')
   } finally {
     await new Promise((r) => langServer.server.close(r))
   }
   ok('技能介绍英文接口：?lang=en 换标题简介与单篇正文而骨架不动、大小写空格宽容；不带参数/非法 lang 的响应与磁盘中文原文逐字节一致；lang 不越名字白名单；中英目录同名一一对应')
 
-  // ── 英文镜像完整性（票 03）：36 篇镜像逐篇与中文原篇对齐，只翻该翻的、不夹带机器事实 ──
+  // ── 英文镜像完整性（票 03）：同名镜像逐篇与中文原篇对齐，只翻该翻的、不夹带机器事实 ──
   {
     const pairs = (await fs.readdir(ZH_DOCS)).filter((f) => f.endsWith('.md')).sort()
-    assert.equal(pairs.length, 36, '中英各 36 篇（35 技能 + 总览）')
+    assert.equal(pairs.length, 37, '中英各 37 篇（35 技能 + 总览 + 流程链聚合导读）')
     const drift = []
     for (const f of pairs) {
       const zhRaw = await fs.readFile(nodePath.join(ZH_DOCS, f), 'utf8')
@@ -1188,15 +1488,38 @@ async function runScenarios(tmp) {
       const cut = (t) => { const e = t.indexOf('\n---', 3); return { fm: t.slice(3, e), body: t.slice(e + 4) } }
       const zh = cut(zhRaw)
       const en = cut(enRaw)
-      const keys = (s) => s.split('\n').map((l) => l.slice(0, l.indexOf(':'))).join(',')
-      if (keys(zh.fm) !== keys(en.fm)) drift.push(f + '：frontmatter 键序不同')
-      const zhFm = zh.fm.split('\n')
-      const enFm = en.fm.split('\n')
-      zhFm.forEach((line, i) => {
-        const key = line.slice(0, line.indexOf(':'))
-        // 只有 title/summary 是译文；其余（name/category/order/inProgress）原样照抄，镜像不带新元数据
-        if (key !== 'title' && key !== 'summary' && line !== enFm[i]) drift.push(f + '：' + key + ' 被改动')
-      })
+      // 两种篇型：总览分类下是不属于任何技能的聚合页（总览、流程链导读），其余四类才是
+      // 「每技能一篇」。判准取自中文篇的 category——英文列的骨架照中文来。
+      const isAggregate = fmField(zhRaw, 'category') === 'overview'
+      // 键集按数组比（cut() 切出的 frontmatter 带一个前导空行，join 成串会多出首段空串）
+      const keys = (s) => s.split('\n').map((l) => l.slice(0, l.indexOf(':'))).filter((k) => k)
+      const zhKeyList = keys(zh.fm)
+      const enKeyList = keys(en.fm)
+      const zhKeys = new Set(zhKeyList)
+      // 总规矩：镜像的 frontmatter 键不得超出中文篇（镜像不引入新元数据）
+      for (const k of enKeyList) {
+        if (!zhKeys.has(k)) drift.push(f + '：镜像多出键 ' + k)
+      }
+      // 聚合导读篇的镜像只可能两种形态：照抄中文篇的全套键（既有页，如总览篇），或者只留
+      // name/title/summary（新页，分类与次序不带——中文目录才是唯一真相）。半抄不算数：
+      // 键集一旦被允许随意收缩，逐字段对齐这条就没了着落，这里把口子堵死而不是放过。
+      const sameShape = enKeyList.join(',') === zhKeyList.join(',')
+      const isSubsetShape = enKeyList.join(',') === 'name,title,summary'
+      if (isAggregate && !sameShape && !isSubsetShape) {
+        drift.push(f + '：聚合篇镜像的键集只能是中文篇的全套或 name/title/summary，实为 ' + enKeyList.join(','))
+      }
+      // 键序一致时逐字段对账：只有 title/summary 是译文，其余（name/category/order/inProgress）
+      // 原样照抄。键集不同的聚合篇没有可对账的非译文字段，上一条已经把形态钉死了。
+      if (sameShape) {
+        const zhFm = zh.fm.split('\n')
+        const enFm = en.fm.split('\n')
+        zhFm.forEach((line, i) => {
+          const key = line.slice(0, line.indexOf(':'))
+          if (key !== 'title' && key !== 'summary' && line !== enFm[i]) drift.push(f + '：' + key + ' 被改动')
+        })
+      } else if (!isAggregate) {
+        drift.push(f + '：frontmatter 键序不同')
+      }
       if (!fmField(enRaw, 'title') || CJK_RE.test(fmField(enRaw, 'title'))) drift.push(f + '：title 空或含中文')
       if (!fmField(enRaw, 'summary') || CJK_RE.test(fmField(enRaw, 'summary'))) drift.push(f + '：summary 空或含中文')
       const h1 = (t) => (t.match(/^# .*$/m) || [''])[0]
@@ -1207,7 +1530,7 @@ async function runScenarios(tmp) {
       if (count(zh.body, /\[[^\]]+\]\([^)]+\)/g) !== count(en.body, /\[[^\]]+\]\([^)]+\)/g)) drift.push(f + '：链接数不同')
       const targets = (t) => (t.match(/\]\([^)]+\)/g) || []).sort().join('|')
       if (targets(zh.body) !== targets(en.body)) drift.push(f + '：链接目标被改动（内链要靠同名篇回退）')
-      if (f !== 'README.md') {
+      if (!isAggregate) {
         // 「什么时候用」的条数与正文段落数、加粗数一并钉住：译文不增删不合并
         const sec = (t, head) => { const i = t.indexOf(head); return i < 0 ? '' : t.slice(i + head.length).split(/^\s*## /m)[0] }
         const zhBullets = count(sec(zh.body, '## 什么时候用'), /^- /gm)
@@ -1221,9 +1544,47 @@ async function runScenarios(tmp) {
         if (quote(zh.body, '## 原文描述') !== quote(en.body, '## Original description')) drift.push(f + '：原文描述引用不逐字节一致')
       }
     }
-    assert.deepEqual(drift, [], '36 篇镜像逐篇对齐（键序、原样字段、结构计数、内链目标、原文描述逐字节）')
+    assert.deepEqual(drift, [], '37 篇镜像逐篇对齐（键序、原样字段、结构计数、内链目标、原文描述逐字节）')
   }
-  ok('英文镜像完整性（文件级）：36 篇同名镜像的 frontmatter 键序与非译文字段原样、H1 与段落/条数/加粗/内链目标对齐、原文描述逐字节照抄、零中文残留')
+  ok('英文镜像完整性（文件级）：37 篇同名镜像的 frontmatter 键不超出中文篇、每技能篇键序与非译文字段原样（聚合导读篇不带分类与次序，键序对齐对它不适用）、H1 与段落/条数/加粗/内链目标对齐、原文描述逐字节照抄、零中文残留')
+
+  // ── 流程链聚合导读（ui-declutter 票 02）：文件级钉住它能进弹窗、正文按四阶段串技能 ──
+  {
+    // 名字白名单是正则不是固定清单：slug 过不了这条正则就 404，整篇等于不存在
+    assert.ok(/^[A-Za-z0-9][A-Za-z0-9-]*$/.test('flowchain'), '聚合页 slug 过服务端名字白名单正则（合法可服务）')
+    const fcRaw = await fs.readFile(nodePath.join(ZH_DOCS, 'flowchain.md'), 'utf8')
+    assert.equal(fmField(fcRaw, 'name'), 'flowchain', 'frontmatter 的 name 与文件名一致')
+    assert.equal(fmField(fcRaw, 'category'), 'overview', '归入总览分类（与总览篇同一分类，弹窗里相邻）')
+    const overviewDocs = []
+    for (const f of (await fs.readdir(ZH_DOCS)).filter((x) => x.endsWith('.md')).sort()) {
+      const raw = await fs.readFile(nodePath.join(ZH_DOCS, f), 'utf8')
+      if (fmField(raw, 'category') === 'overview') overviewDocs.push([f, Number(fmField(raw, 'order'))])
+    }
+    assert.deepEqual(overviewDocs, [['README.md', 0], ['flowchain.md', 1]], '总览分类下次序紧跟总览篇（README 0 → flowchain 1）')
+    // 正文按四阶段分节，每节串起该阶段挂的技能——技能名单与 flowchain.mjs 的阶段定义同源
+    const fcBody = fcRaw.slice(fcRaw.indexOf('\n---', 3) + 4)
+    assert.deepEqual(
+      FLOW_STAGES.map((st) => [st.id, st.skills]),
+      [['grill', ['grilling', 'wayfinder']], ['spec', ['to-spec']], ['tickets', ['to-tickets']], ['implement', ['implement']]],
+      '阶段定义里的技能名单是四格各自的挂载（grill 两枚、其余各一）',
+    )
+    for (const st of FLOW_STAGES) {
+      for (const skill of st.skills) {
+        assert.match(fcBody, new RegExp('\\[' + skill + '\\]\\(' + skill + '\\.md\\)'), '聚合页内链到该阶段的 ' + skill + ' 介绍')
+        assert.ok(existsSync(nodePath.join(ZH_DOCS, skill + '.md')), '内链目标存在：' + skill + '.md')
+      }
+    }
+    // 四节标题各就各位（导读的骨架：一格一节）
+    assert.equal((fcBody.match(/^## /gm) || []).length, 5, '四阶段各一节 + 末尾一节「跑完之后」')
+    // 镜像纪律：分类与次序以中文目录为唯一元数据源，聚合篇的镜像连它们都不带（服务端也从不读）
+    const fcEnRaw = await fs.readFile(nodePath.join(EN_DOCS, 'flowchain.md'), 'utf8')
+    assert.equal(fmField(fcEnRaw, 'category'), '', '英文镜像不带 category（分类以中文目录为唯一真相）')
+    assert.equal(fmField(fcEnRaw, 'order'), '', '英文镜像不带 order（次序以中文目录为唯一真相）')
+    assert.notEqual(fmField(fcEnRaw, 'title'), '', '英文镜像有 title（否则清单会打 noEnglish、正文回退中文）')
+    assert.equal(fmField(fcEnRaw, 'title'), 'A tour of the four flowchain stages', '英文标题照译')
+    assert.notEqual(fmField(fcEnRaw, 'summary'), fmField(fcRaw, 'summary'), '英文 summary 是译文不是照抄')
+    ok('流程链聚合导读（文件级）：docs/skill-intros/flowchain.md 归入 overview、次序紧跟总览篇、slug 过名字白名单、正文按四阶段分节并内链各阶段技能（与 FLOW_STAGES 的 skills 同源）；英文镜像同名在位，只译 title/summary 与正文，分类与次序不自带')
+  }
 
   // ── 访问令牌：config.json 的 token 非空时，/api/* 无/错令牌 401，头与查询串携带皆可；静态壳不设防 ──
   const tokenCfgPath = nodePath.join(tmp, 'config-token.json')
@@ -1504,6 +1865,128 @@ async function runScenarios(tmp) {
   }
   ok('设置服务端：POST /api/config 收 pollMs/host/port/token（逐字段校验、applied 生效语义、非法不写盘）；pollMs/令牌即时生效，host/port 重启生效')
 
+  // ── 指引词服务端（custom-guides 票 02，ADR-0004）：guides 字段逐形状校验、immediate 生效、
+  //    手改下一拍跟上、写盘保留旁注，且服务端只搬原值不参与拼装（「服务端不造字」的纪律）。──
+  // 自建一个干净根目录：这一组要在真链格上验证「内置段没被拼进自定义段」，不能借别的用例的 tmp。
+  const gdRoot = nodePath.join(tmp, 'guides-root')
+  await fs.mkdir(nodePath.join(gdRoot, '.scratch', 'demo', 'issues'), { recursive: true })
+  await writeFile(nodePath.join(gdRoot, '.scratch', 'demo', 'spec.md'), '# 规格\n\n一段内容。\n')
+  const gdCfg = nodePath.join(tmp, 'config-guides.json')
+  const gdBase = { 说明: '整段保留', 字段说明: { root: '要追踪的项目目录' }, root: gdRoot, guides: { implement: { zh: '手写的自定义中文段' } } }
+  await writeFile(gdCfg, JSON.stringify(gdBase))
+  const gdServer = await startServer({ root: gdRoot, port: 0, configPath: gdCfg })
+  const gdRead = async () => (await fetch(gdServer.url + '/api/state')).json()
+  try {
+    let gdState = await gdRead()
+    assert.deepEqual(gdState.guides, { implement: { zh: '手写的自定义中文段' } }, 'guides 随 /api/state 原值下发（服务端不拼装）')
+    // 手改 config.json 下一拍生效：config 的 mtime+size 本就在指纹里，这条不靠新机制
+    await fs.writeFile(gdCfg, JSON.stringify(Object.assign({}, gdBase, { guides: { implement: { zh: '手改之后的段' } } })))
+    gdState = await gdRead()
+    assert.equal(gdState.guides.implement.zh, '手改之后的段', '手改 config.json 的 guides 下一拍即生效')
+    await fs.writeFile(gdCfg, JSON.stringify(Object.assign({}, gdBase, { guides: { implement: { zh: 42 } } })))
+    gdState = await gdRead()
+    assert.deepEqual(gdState.guides, {}, '手改写成坏形状回落空对象（读侧不抛也不整份丢弃）')
+
+    // 逐形状 400：非对象、面不是对象、zh/en 不是字符串、面内多余键。结构非法整体拒，一个字都不写盘。
+    await fs.writeFile(gdCfg, JSON.stringify(gdBase))
+    const gdBefore = await fs.readFile(gdCfg, 'utf8')
+    for (const bad of ['x', 123, null, [], { implement: 'x' }, { implement: [] }, { implement: { zh: 1 } }, { implement: { en: {} } }, { implement: { zh: 'ok', en: null } }, { implement: { zh: 'ok', bogus: 1 } }]) {
+      const r = await postJson(gdServer.url + '/api/config', { guides: bad })
+      assert.equal(r.status, 400, 'guides 结构非法应 400：' + JSON.stringify(bad))
+      assert.equal(r.data.code, 'config.guides', '错误码稳定（界面按 code 措辞）')
+    }
+    assert.equal(await fs.readFile(gdCfg, 'utf8'), gdBefore, '全非法请求一个字都不写盘（连格式都不动）')
+
+    // 合法保存：applied.immediate、写盘保留「说明」与「字段说明」、下一拍带上新值
+    const gdOk = await postJson(gdServer.url + '/api/config', { guides: { implement: { zh: '新中文段', en: '' } } })
+    assert.equal(gdOk.status, 200)
+    assert.deepEqual(gdOk.data.applied, { guides: 'immediate' }, 'guides 生效语义 immediate（写盘即生效）')
+    const gdSaved = JSON.parse(await fs.readFile(gdCfg, 'utf8'))
+    assert.deepEqual(gdSaved.guides, { implement: { zh: '新中文段', en: '' } }, 'guides 写进 config.json')
+    assert.equal(gdSaved['说明'], '整段保留', '写盘保留「说明」')
+    assert.deepEqual(gdSaved['字段说明'], { root: '要追踪的项目目录' }, '写盘保留「字段说明」')
+    gdState = await gdRead()
+    assert.deepEqual(gdState.guides, { implement: { zh: '新中文段', en: '' } }, '写盘后下一拍 /api/state 就带上新值')
+
+    // 「服务端不造字」：自定义段绝不进内置段。真链格上钉——内置段仍是服务端的原样推导结果。
+    const gdImpl = gdState.efforts.find((e) => e.slug === 'demo').chain.stages.find((s) => s.id === 'implement')
+    assert.doesNotMatch(gdImpl.copyText + gdImpl.en.copyText, /新中文段/, '自定义段不参与服务端拼装（内置段原样）')
+
+    // 面名不写死：归一原样透传每一面（下一票把面数从一扩到五时服务端零改动）
+    await postJson(gdServer.url + '/api/config', { guides: { implement: { zh: '甲' }, ticket: { zh: '乙' } } })
+    assert.deepEqual((await gdRead()).guides, { implement: { zh: '甲' }, ticket: { zh: '乙' } }, '面名不写死原样透传（票行那面随票 03 接上，先存着不丢）')
+
+    // 缺面与空串都合法——那正是「回落内置段」这一事实本身
+    const gdEmpty = await postJson(gdServer.url + '/api/config', { guides: { implement: { zh: '' } } })
+    assert.equal(gdEmpty.status, 200, '空串合法（= 回落内置段）')
+    assert.deepEqual((await gdRead()).guides, { implement: { zh: '' } }, '空串原样下发，由界面按非空判定')
+    assert.equal((await postJson(gdServer.url + '/api/config', { guides: { implement: {} } })).status, 200, '缺面合法')
+    assert.equal((await postJson(gdServer.url + '/api/config', { guides: {} })).status, 200, '整份清空合法')
+    assert.deepEqual((await gdRead()).guides, {}, '清空后载荷为空对象（出厂：五面全走内置段）')
+  } finally {
+    await new Promise((r) => gdServer.server.close(r))
+  }
+  ok('指引词服务端（custom-guides 02）：guides 逐形状校验（非法含面内多余键一律整体 400 且一个字不写盘、错误码稳定）、applied.immediate、手改 config 下一拍生效、写盘保留「说明」与「字段说明」、服务端只搬原值不参与拼装；面名不写死原样透传、缺面/空串/清空皆合法')
+
+  // ── 指引词前缀服务端（guides-prefix 票 01）：guidesPrefix 与 guides 平级，形状 { 面名: 字符串 }。
+  //    服务端仍然只搬原值——「服务端不造字」在这一格同样成立，前缀与正文的拼装在界面复制那一刻。
+  //    沿用上一组那套夹具与真链格根目录（内置段那几处断言要真 effort 才说得清）。──
+  const gpCfg = gdCfg
+  const gpBase = Object.assign({}, gdBase, { guidesPrefix: { implement: '/using-git-worktrees /implement' } })
+  await writeFile(gpCfg, JSON.stringify(gpBase))
+  const gpServer = await startServer({ root: gdRoot, port: 0, configPath: gpCfg })
+  const gpRead = async () => (await fetch(gpServer.url + '/api/state')).json()
+  try {
+    assert.deepEqual((await gpRead()).guidesPrefix, { implement: '/using-git-worktrees /implement' }, 'guidesPrefix 随 /api/state 原值下发（服务端不拼装）')
+    // 手改下一拍生效：config 的 mtime+size 本就在指纹里，这条不靠新机制
+    await fs.writeFile(gpCfg, JSON.stringify(Object.assign({}, gpBase, { guidesPrefix: { implement: '/grilling' } })))
+    assert.deepEqual((await gpRead()).guidesPrefix, { implement: '/grilling' }, '手改 config.json 的 guidesPrefix 下一拍即生效')
+    await fs.writeFile(gpCfg, JSON.stringify(Object.assign({}, gpBase, { guidesPrefix: { implement: { zh: '/x' } } })))
+    assert.deepEqual((await gpRead()).guidesPrefix, {}, '手改写成坏形状回落空对象（读侧不抛也不整份丢弃，与 guides 同姿态）')
+
+    // 逐形状 400：非对象、面值非字符串、面值是对象。结构非法整体拒，一个字都不写盘。
+    await fs.writeFile(gpCfg, JSON.stringify(gpBase))
+    const gpBefore = await fs.readFile(gpCfg, 'utf8')
+    for (const bad of ['x', 123, null, [], { implement: 42 }, { implement: { zh: '/x' } }, { implement: ['/x'] }, { implement: null }]) {
+      const r = await postJson(gpServer.url + '/api/config', { guidesPrefix: bad })
+      assert.equal(r.status, 400, 'guidesPrefix 结构非法应 400：' + JSON.stringify(bad))
+      assert.equal(r.data.code, 'config.guides-prefix', '错误码独立一个（界面按 code 措辞，不与 guides 混）')
+    }
+    // __proto__ 不写盘：它是「面名」的极端形状，与 guides 同一处置
+    const gpProto = await postJson(gpServer.url + '/api/config', JSON.parse('{"guidesPrefix":{"__proto__":"/x"}}'))
+    assert.equal(gpProto.status, 400, '__proto__ 不是面名，整体 400')
+    assert.equal(await fs.readFile(gpCfg, 'utf8'), gpBefore, '全非法请求一个字都不写盘（连格式都不动）')
+
+    // 合法保存：applied.immediate、写盘保留「说明」与「字段说明」、下一拍带上新值
+    const gpOk = await postJson(gpServer.url + '/api/config', { guidesPrefix: { implement: '/implement', ticket: '/implement' } })
+    assert.equal(gpOk.status, 200)
+    assert.deepEqual(gpOk.data.applied, { guidesPrefix: 'immediate' }, 'guidesPrefix 生效语义 immediate（写盘即生效）')
+    const gpSaved = JSON.parse(await fs.readFile(gpCfg, 'utf8'))
+    assert.deepEqual(gpSaved.guidesPrefix, { implement: '/implement', ticket: '/implement' }, 'guidesPrefix 写进 config.json')
+    assert.equal(gpSaved['说明'], '整段保留', '写盘保留「说明」')
+    assert.deepEqual(gpSaved['字段说明'], { root: '要追踪的项目目录' }, '写盘保留「字段说明」')
+    assert.deepEqual(gpSaved.guides, gpBase.guides, '与 guides 平级：改前缀不牵动自定义段')
+    const gpState = await gpRead()
+    assert.deepEqual(gpState.guidesPrefix, { implement: '/implement', ticket: '/implement' }, '写盘后下一拍 /api/state 就带上新值')
+
+    // 「服务端不造字」：前缀绝不进内置段。真链格上钉——内置段仍是服务端的原样推导结果。
+    const gpImpl = gpState.efforts.find((e) => e.slug === 'demo').chain.stages.find((s) => s.id === 'implement')
+    assert.doesNotMatch(gpImpl.copyText + gpImpl.en.copyText, /\/implement/, '前缀不参与服务端拼装（内置段原样）')
+
+    // 面名不写死：归一原样透传每一面（不校验、不拦别的面名）
+    await postJson(gpServer.url + '/api/config', { guidesPrefix: { 我们这面: '/我们这面' } })
+    assert.deepEqual((await gpRead()).guidesPrefix, { 我们这面: '/我们这面' }, '面名原样透传不拦（界面只认五面，写错的面名等于没写）')
+
+    // 缺面、空串与整份清空都合法——空前缀 = 不贴，那正是出厂状态
+    assert.equal((await postJson(gpServer.url + '/api/config', { guidesPrefix: {} })).status, 200, '缺面 / 整份清空合法')
+    assert.deepEqual((await gpRead()).guidesPrefix, {}, '清空后载荷为空对象（出厂：五面都不贴前缀）')
+    assert.equal((await postJson(gpServer.url + '/api/config', { guidesPrefix: { implement: '' } })).status, 200, '空串合法（= 不贴）')
+    assert.deepEqual((await gpRead()).guidesPrefix, { implement: '' }, '空串原样下发，由界面按非空判定')
+  } finally {
+    await new Promise((r) => gpServer.server.close(r))
+  }
+  ok('指引词前缀服务端（guides-prefix 01）：guidesPrefix 与 guides 平级、形状 { 面名: 字符串 }（面值非字符串/非对象与 __proto__ 一律整体 400 且一个字不写盘、错误码独立一个）、applied.immediate、手改 config 下一拍生效、写盘保留「说明」与「字段说明」、服务端只搬原值不参与拼装（内置段里不出现前缀）；面名原样透传不拦、缺面/空串/整份清空皆合法')
+
   // ── 错误码（english-ui 票 02）：JSON 错误响应带稳定 code，原人话照旧留着供日志 ──
   const codeCfg = nodePath.join(tmp, 'config-codes.json')
   await writeFile(codeCfg, JSON.stringify({ root: tmp, token: 'tok-code' }))
@@ -1624,7 +2107,7 @@ async function runScenarios(tmp) {
   assert.match(cliTail.err, /--host/)
 
   const cliOk = await new Promise((resolve, reject) => {
-    const p = spawn(process.execPath, [nodePath.join(HERE, 'server.mjs'), '--config', 'cli-ok.json', '--port', '0'], { cwd: tmp, stdio: ['ignore', 'pipe', 'inherit'] })
+    const p = spawn(process.execPath, [nodePath.join(APP, 'server.mjs'), '--config', 'cli-ok.json', '--port', '0'], { cwd: tmp, stdio: ['ignore', 'pipe', 'inherit'] })
     const timer = setTimeout(() => { p.kill(); reject(new Error('CLI 子进程 15 秒内没启动完')) }, 15000)
     let buf = ''
     p.stdout.on('data', (d) => {
@@ -1650,7 +2133,7 @@ async function runScenarios(tmp) {
     console.log('  ⊘ 跳过界面运行时验证（未安装 jsdom）')
   } else {
     const { VirtualConsole } = await import('jsdom')
-    const html = await fs.readFile(nodePath.join(HERE, 'index.html'), 'utf8')
+    const html = await fs.readFile(nodePath.join(APP, 'index.html'), 'utf8')
     const tick = () => new Promise((r) => setTimeout(r, 40))
     /* 界面夹具工厂：界面初始语言按浏览器语言判定，而 jsdom 的 navigator.languages 默认就是
        ['en-US','en']——既有中文态用例经此钉成中文浏览器，否则它们悄悄测的就不再是中文界面。
@@ -1732,11 +2215,13 @@ async function runScenarios(tmp) {
     await new Promise((r) => setTimeout(r, 150))
     const doc = dom.window.document
     const win = dom.window
-    const input = doc.getElementById('rootInput')
+    const input = doc.getElementById('newTabPath')
+    const newTabBtn = doc.getElementById('newTabBtn')
     const menu = doc.getElementById('rootMenu')
     const opts = () => Array.from(doc.querySelectorAll('#rootMenu .opt'))
     const postCalls = () => calls.filter((c) => c.opts && c.opts.method === 'POST')
     const key = (k) => input.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }))
+    const openNewTab = () => newTabBtn.dispatchEvent(new win.Event('click', { bubbles: true }))
 
   // 默认选中第一个 effort（__root）：地图干净 → grill 完成，当前步是 spec
   assert.equal(doc.querySelectorAll('#tabs button').length, 6, '5 个 effort + 尾部「全部」伪条目')
@@ -1776,11 +2261,11 @@ async function runScenarios(tmp) {
     tabBtn('idea-b').dispatchEvent(new win.Event('click'))
     assert.equal(doc.querySelectorAll('.stage .chip.infer').length, 0, '全实证 effort 无任何推定标注')
 
-    // ── 常用目录下拉：聚焦弹出；当前追踪目录置顶标示（主行目录名、次行全路径），纯展示不写回 ──
+    // ── 开新标签菜单：顶栏按钮点开；当前追踪目录置顶标示（主行目录名、次行全路径），纯展示不写回 ──
     assert.equal(postCalls().length, 0, '没动下拉之前不该有任何写请求')
-    input.focus()
+    openNewTab()
     await tick()
-    assert.equal(menu.hasAttribute('hidden'), false, '聚焦输入框应展开常用目录下拉')
+    assert.equal(menu.hasAttribute('hidden'), false, '点「＋ 开新标签」应展开常用目录下拉')
     assert.equal(opts().length, 4)
     assert.equal(opts()[0].querySelector('.main').textContent.indexOf(nodePath.basename(absTmp)), 0)
     assert.equal(opts()[0].querySelector('.sub').textContent, absTmp)
@@ -1792,7 +2277,7 @@ async function runScenarios(tmp) {
     await tick()
     assert.equal(postCalls().filter((c) => c.url.indexOf('/api/config') >= 0).length, cfgPostsBeforeMissingClick, '置灰条目点了不该发起切换')
     assert.equal(menu.hasAttribute('hidden'), false, '点置灰条目也不该关下拉')
-    ok('常用目录下拉：聚焦展开；当前目录置顶标示；主行目录名、次行全路径；失效条目置灰标注且不可点选')
+    ok('开新标签菜单：顶栏按钮点开；当前目录置顶标示；主行目录名、次行全路径；失效条目置灰标注且不可点选')
 
     // ── ✕ 即删即生效：删掉失效条目，菜单原地更新、不关闭 ──
     const gone1 = opts().find((o) => o.querySelector('.sub').textContent === '/tmp/fd-gone-1')
@@ -1819,22 +2304,22 @@ async function runScenarios(tmp) {
     assert.equal(opts().length, 3)
     ok('常用目录过滤：输入按全路径子串过滤（不区分大小写），无匹配时给出空态文案')
 
-    // ── 键盘：↑↓ 移动高亮；Enter 选中即切换；高亮在失效条目上时回落为按输入框内容换目录 ──
+    // ── 键盘：↑↓ 移动高亮；Enter 选中即开卡；高亮在失效条目上时回落为按路径框内容开新标签 ──
     assert.ok(opts()[0].className.indexOf('hl') >= 0)
     key('ArrowDown')
     key('ArrowDown')
     assert.ok(opts()[2].className.indexOf('hl') >= 0)
     const postsBeforeEnter = postCalls().length
     key('Enter')
-    assert.equal(postCalls().length, postsBeforeEnter, '输入框为空时 Enter 不发起换目录')
-    // 输入的新路径没有匹配条目：Enter 仍按输入框内容换目录（老行为不回归）
+    assert.equal(postCalls().length, postsBeforeEnter, '路径框为空时 Enter 不发起开卡')
+    // 输入的新路径没有匹配条目：Enter 仍按路径框内容开新标签（老行为不回归）
     input.value = '/tmp/fd-typed-new'
     input.dispatchEvent(new win.Event('input', { bubbles: true }))
     assert.equal(opts().length, 0)
     key('Enter')
     await tick()
     assert.equal(JSON.parse(postCalls().filter((c) => c.url.indexOf('/api/config') >= 0).pop().opts.body).root, '/tmp/fd-typed-new')
-    input.dispatchEvent(new win.Event('click', { bubbles: true }))
+    openNewTab()
     await tick()
     input.value = '/tmp/fd-proj-alpha'
     input.dispatchEvent(new win.Event('input', { bubbles: true }))
@@ -1842,11 +2327,11 @@ async function runScenarios(tmp) {
     await tick()
     const cfgPosts = postCalls().filter((c) => c.url.indexOf('/api/config') >= 0)
     assert.equal(JSON.parse(cfgPosts.pop().opts.body).root, '/tmp/fd-proj-alpha')
-    assert.equal(menu.hasAttribute('hidden'), true, '选中即切换后收起下拉')
+    assert.equal(menu.hasAttribute('hidden'), true, '选中即开卡后收起菜单')
     assert.match(doc.getElementById('meta').textContent, /fd-proj-alpha/)
-    ok('常用目录键盘操作：↑↓ 移动高亮，Enter 选中立即切换；高亮失效或无匹配时回落为按输入框换目录')
+    ok('开新标签菜单键盘操作：↑↓ 移动高亮，Enter 选中立即开卡并切过去；高亮失效或无匹配时回落为按路径框开新标签')
 
-    // ── 点选即切换：重开下拉（输入框已持有焦点，focus 不会再派发事件，用点击展开），直接点一条 ──
+    // ── 点选即开卡：重开菜单（路径框已持有焦点，focus 不会再派发事件，用点击展开），直接点一条 ──
     input.dispatchEvent(new win.Event('click', { bubbles: true }))
     await tick()
     assert.equal(opts().length, 4, '切换后当前目录仍在置顶，被删的条目不再回来')
@@ -1855,9 +2340,9 @@ async function runScenarios(tmp) {
     alphaOpt.dispatchEvent(new win.Event('click', { bubbles: true }))
     await tick()
     assert.equal(JSON.parse(postCalls().filter((c) => c.url.indexOf('/api/config') >= 0).pop().opts.body).root, '/tmp/fd-proj-alpha')
-    ok('常用目录点选：点一条立即发起切换')
+    ok('常用目录点选：点一条立即为它开卡（复用同一条换根请求）')
 
-    // ── 轮询刷新不打扰：下拉开着、焦点在输入框，后台刷新（无用户点击）后两者都保住，数据还更新了 ──
+    // ── 轮询刷新不打扰：菜单开着、焦点在路径框，后台刷新（无用户点击）后两者都保住，数据还更新了 ──
     input.focus()
     input.dispatchEvent(new win.Event('click', { bubbles: true }))
     await tick()
@@ -1865,15 +2350,15 @@ async function runScenarios(tmp) {
     statePayload.recentRoots.push({ path: '/tmp/fd-proj-beta', exists: true })
     doc.dispatchEvent(new win.Event('visibilitychange'))
     await tick()
-    assert.equal(menu.hasAttribute('hidden'), false, '后台刷新不应关闭展开的下拉')
-    assert.equal(doc.activeElement, input, '后台刷新不应抢走输入框焦点')
+    assert.equal(menu.hasAttribute('hidden'), false, '后台刷新不应关闭展开的菜单')
+    assert.equal(doc.activeElement, input, '后台刷新不应抢走路径框焦点')
     assert.ok(opts().some((o) => o.querySelector('.sub').textContent === '/tmp/fd-proj-beta'), '刷新后的新数据应进入下拉')
 
     key('Escape')
-    assert.equal(menu.hasAttribute('hidden'), true, 'Esc 应关闭下拉')
+    assert.equal(menu.hasAttribute('hidden'), true, 'Esc 应关闭菜单')
     assert.deepEqual(jsErrors, [])
     dom.window.close()
-    ok('常用目录轮询共存：刷新不关闭下拉、不抢焦点，新数据照常进来；Esc 关闭')
+    ok('开新标签菜单轮询共存：刷新不关闭菜单、不抢焦点，新数据照常进来；Esc 关闭')
 
     // ── 空列表场景：只有置顶的当前目录 + 引导文案，纯展示不写回 ──
     const jsErrors2 = []
@@ -1897,7 +2382,7 @@ async function runScenarios(tmp) {
     })
     await new Promise((r) => setTimeout(r, 150))
     const eDoc = emptyDom.window.document
-    eDoc.getElementById('rootInput').focus()
+    eDoc.getElementById('newTabBtn').dispatchEvent(new emptyDom.window.Event('click', { bubbles: true }))
     await tick()
     assert.equal(eDoc.querySelectorAll('#rootMenu .opt').length, 1, '空列表时只有置顶的当前目录')
     assert.ok(eDoc.getElementById('rootMenu').textContent.indexOf('切换过的目录会出现在这里') >= 0)
@@ -1998,12 +2483,17 @@ async function runScenarios(tmp) {
     await new Promise((r) => setTimeout(r, 150))
     const uDoc = unauthDom.window.document
     const uWin = unauthDom.window
-    uDoc.getElementById('rootInput').value = '/tmp/fd-switch-target'
-    uDoc.getElementById('switchBtn').dispatchEvent(new uWin.Event('click', { bubbles: true }))
+    const uNewTab = uDoc.getElementById('newTabBtn')
+    uNewTab.dispatchEvent(new uWin.Event('click', { bubbles: true }))
+    await tick()
+    const uField = uDoc.getElementById('newTabPath')
+    uField.value = '/tmp/fd-switch-target' // 不匹配任何常用目录 → Enter 走「按路径框内容开新标签」
+    uField.dispatchEvent(new uWin.Event('input', { bubbles: true }))
+    uField.dispatchEvent(new uWin.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
     await new Promise((r) => setTimeout(r, 60))
     assert.match(uDoc.getElementById('err').textContent, /换目录失败：需要访问令牌/, 'POST 401 显示定向文案（不走服务端泛文案）')
     assert.match(uDoc.getElementById('err').textContent, /\?token=/, '定向文案带 ?token= 补救指引')
-    assert.equal(uDoc.getElementById('switchBtn').disabled, false, '失败后按钮恢复可用')
+    assert.equal(uNewTab.disabled, false, '失败后按钮恢复可用')
     assert.deepEqual(jsErrors401, [])
     unauthDom.window.close()
     ok('apiFetch 归一：POST 错令牌拿到定向 401 提示（含 ?token= 补救指引），按钮状态恢复')
@@ -2043,11 +2533,14 @@ async function runScenarios(tmp) {
     assert.equal(modeCalls.state, 1, '首载一拍')
     await new Promise((r) => setTimeout(r, 1300)) // pollMs=1000：若仍有自动轮询，这里早该多出请求
     assert.equal(modeCalls.state, 1, '惰性档零自动请求（过了 pollMs 周期也没有新请求）')
-    // 状态变更操作（换目录）完成后自动刷一拍
-    mDoc.getElementById('rootInput').value = '/tmp/fd-mode-b'
-    mDoc.getElementById('switchBtn').dispatchEvent(new mWin.Event('click', { bubbles: true }))
+    // 状态变更操作（开新标签）完成后自动刷一拍
+    mDoc.getElementById('newTabBtn').dispatchEvent(new mWin.Event('click', { bubbles: true }))
+    const mField = mDoc.getElementById('newTabPath')
+    mField.value = '/tmp/fd-mode-b'
+    mField.dispatchEvent(new mWin.Event('input', { bubbles: true }))
+    mField.dispatchEvent(new mWin.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
     await new Promise((r) => setTimeout(r, 120))
-    assert.equal(modeCalls.state, 2, '换目录成功后自动补一拍')
+    assert.equal(modeCalls.state, 2, '开新标签成功后自动补一拍')
     assert.match(badge.textContent, /盘点$/, '补拍后徽标盘点时间更新')
     // 别处改成观测档 → 本浏览器手动刷新一拍即跟随（无轮询所致的已知边角，记档）
     modePayload = { ...modePayload, pollMode: 'observe' }
@@ -2154,6 +2647,11 @@ async function runScenarios(tmp) {
     assert.equal(copiesA.length, 1, 'focus 后 Enter 触发复制')
     assert.match(copiesA[0], /请实现票 01/)
     assert.match(copiesA[0], /01-index-core/)
+    // 逐字钉 `git switch -c` 已随 branch-discipline 撤销（custom-guides 01 / ADR-0004），
+    // 这里改钉规则：使用者真正复制到的那串字里不得有 git 措辞。文件级规则管的是词表字面量，
+    // 这一条管拼装后的结果——模板里再拼进去也能兜住。
+    assert.doesNotMatch(copiesA[0], /\bgit\b/, '票行复制词零 git 措辞（custom-guides 01）')
+    assert.doesNotMatch(copiesA[0], /合回|merge back/, '票行复制词不提合并（回归防护：合并是 effort 级动作，防重新织入）')
     aKey(aRow, ' ')
     await tick()
     assert.equal(copiesA.length, 2, 'Space 与 Enter 同一处理')
@@ -2174,6 +2672,7 @@ async function runScenarios(tmp) {
     aKey(aStages[3], 'Enter')
     await tick()
     assert.match(copiesA[copiesA.length - 1], /Blocked by 为空的票/, '链格 Enter 复制本格指引词')
+    assert.doesNotMatch(copiesA[copiesA.length - 1], /\bgit\b/, '链格复制词零 git 措辞（custom-guides 01）')
 
     // 推定含义不再只藏悬停：推定链格的 aria-label 与推定徽标都载说明
     aTab('only-spec').dispatchEvent(new aWin.Event('click'))
@@ -2181,9 +2680,8 @@ async function runScenarios(tmp) {
     assert.match(inferStage.getAttribute('aria-label'), /推定 · 无 map：此格不是由本阶段产物证成/, '链格 aria-label 载推定含义')
     assert.match(inferStage.querySelector('.chip.infer').getAttribute('aria-label'), /推定 · 无 map：/, '推定徽标 aria-label 载推定含义')
 
-    // 键盘层：下拉项可 Tab 停留、Enter 触发切换；失效条目不可点也不进 Tab 序
-    const aInput = aDoc.getElementById('rootInput')
-    aInput.focus()
+    // 键盘层：下拉项可 Tab 停留、Enter 触发开卡；失效条目不可点也不进 Tab 序
+    aDoc.getElementById('newTabBtn').dispatchEvent(new aWin.Event('click', { bubbles: true }))
     await tick()
     const aOpts = Array.from(aDoc.querySelectorAll('#rootMenu .opt'))
     assert.equal(aOpts[0].getAttribute('tabindex'), '0', '可点下拉项可 Tab 停留')
@@ -2192,16 +2690,28 @@ async function runScenarios(tmp) {
     aOpts[1].focus()
     aKey(aOpts[1], 'Enter')
     await tick()
-    assert.equal(postsA.length, 1, '下拉项 focus 后 Enter 发起切换')
+    assert.equal(postsA.length, 1, '下拉项 focus 后 Enter 发起开卡')
     assert.equal(postsA[0].root, '/tmp/fd-a11y-old')
-    assert.equal(aDoc.getElementById('rootMenu').hasAttribute('hidden'), true, 'Enter 切换后收起下拉')
+    assert.equal(aDoc.getElementById('rootMenu').hasAttribute('hidden'), true, 'Enter 开卡后收起菜单')
 
-    // 焦点圈禁（makeModal 第六件）：弹窗内 Tab 循环不外逃
+    // 焦点圈禁（makeModal 第六件）：弹窗内 Tab 循环不外逃。
+    // 选择器必须与 makeModal 里的那份同集（button/[href]/input/select/textarea/[tabindex]）——
+    // 少写一个元素类型，新控件就静默逃出覆盖：加指引词的 textarea 时正是漏在这里（票 02 必改项）。
+    //
+    // 「同集」与「圈内」分两步钉：面下拉一开窗是空态、未选面时两个 textarea 是 disabled 的，
+    // 拿「此刻可聚焦的那些」去断言覆盖面会被空态骗过去（控件明明在，只是暂时不可点），
+    // 于是覆盖面用未过滤的 querySelectorAll 断言，圈内只对 enabled 的做圈禁往返。
     aDoc.getElementById('settingsBtn').dispatchEvent(new aWin.Event('click', { bubbles: true }))
     await tick()
     const setBox = aDoc.getElementById('settingsModal')
     assert.ok(setBox.contains(aDoc.activeElement), '开窗即把焦点放进弹窗')
-    const focusIn = () => Array.from(setBox.querySelectorAll('button, input, select')).filter((n) => !n.disabled && !n.closest('[hidden]'))
+    const focusables = Array.from(setBox.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+    const focusIn = () => focusables.filter((n) => !n.disabled && !n.closest('[hidden]'))
+    assert.deepEqual(
+      Array.from(setBox.querySelectorAll('button, input, select, textarea')),
+      focusables, '选择器与 makeModal 的那份同集（票 03：面下拉与两个 textarea 都得落在圈禁覆盖内）')
+    assert.ok(focusables.some((n) => n.id === 'setGuidesZh') && focusables.some((n) => n.id === 'setGuidesEn'), '指引词两个 textarea 在焦点序里（选择器没漏 textarea）')
+    assert.ok(focusables.some((n) => n.id === 'setGuidesFace'), '面下拉也在焦点序里')
     const firstF = focusIn()[0]
     const lastF = focusIn()[focusIn().length - 1]
     aKey(lastF, 'Tab')
@@ -2467,7 +2977,140 @@ async function runScenarios(tmp) {
     allDom2.window.close()
     ok('全部视图偏好读取：localStorage 记忆跨会话生效（不显示完工 + 展开态）')
 
-    // ── 项目总览弹窗（票 03）：打开才单拍、坏行标注、点行触发现有切换流 ──
+    // ── 切换条减负（票 01）：完工 effort 收进「✓ 完工 (n)」折叠入口，零写、纯显示偏好 ──
+    // 夹具形态照抄「全部视图」那一组：同载荷（alpha/beta 进行中，gamma/delta 四格全绿）、
+    // 同一个 uiDom + fetch 桩，不同的是这里盯 #tabs 本身。零写一并钉在桩上：折叠点来点去
+    // 一个写请求都不许发（.scratch/ 与 config.json 都得一个字节不动）。
+    const jsErrorsFold = []
+    const vcFold = new VirtualConsole()
+    vcFold.on('jsdomError', (e) => jsErrorsFold.push(String((e && e.message) || e)))
+    const foldFetches = []
+    const foldDom = uiDom({
+      runScripts: 'dangerously',
+      url: 'http://127.0.0.1:39324/',
+      pretendToBeVisual: true,
+      virtualConsole: vcFold,
+      beforeParse(window) {
+        Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.resolve() } })
+        window.fetch = (u, opts) => {
+          foldFetches.push({ url: String(u), method: (opts && opts.method) || 'GET' })
+          return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(allPayload)) })
+        }
+      },
+    })
+    await new Promise((r) => setTimeout(r, 150))
+    const foDoc = foldDom.window.document
+    const foWin = foldDom.window
+    // 折叠入口按 aria-expanded 认（展开态是它对外的契约，不靠内部类名认门）
+    const foldToggle = () => foDoc.querySelector('#tabs button[aria-expanded]')
+    const foldTabs = () => Array.from(foDoc.querySelectorAll('#tabs button')).map((b) => b.textContent)
+
+    // 默认收起：进行中平铺在前，折叠入口垫在「全部」之前，完工 effort 一个 tab 都不露
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', '✓ 完工 (2)', '全部'], '收起态：进行中在前、折叠入口、纵览垫底')
+    assert.ok(!foldTabs().some((x) => x.indexOf('gamma') === 0 || x.indexOf('delta') === 0), '收起态不渲染任何完工 tab')
+    assert.equal(foldToggle().getAttribute('aria-expanded'), 'false', '折叠态如实用 aria-expanded=false')
+    assert.ok(foldToggle().getAttribute('aria-label'), '折叠入口带 aria-label（目标与展开态都读得到）')
+    // 词条里带 {n} 槽的一律走填槽取词：t() 原样吐占位符，真浏览器实拍撞出来的洞（标题挂着一句
+    // 「展开这 {n} 个完工 effort」）。两态的 title 都得是填好的整句。
+    for (const attr of ['title', 'aria-label']) {
+      assert.doesNotMatch(foldToggle().getAttribute(attr), /\{/, '折叠入口的 ' + attr + ' 不残留未填的占位符')
+    }
+    assert.match(foldToggle().getAttribute('title'), /2/, '折叠态 title 带折叠内的计数')
+    assert.equal(foldToggle().tagName, 'BUTTON', '折叠入口是原生 button（可 Tab 到达、Enter/Space 有默认键盘行为）')
+    foldToggle().focus()
+    assert.equal(foDoc.activeElement, foldToggle(), '折叠入口可聚焦（键盘可达）')
+
+    // 展开：两个完工 tab 落在折叠入口之后、「全部」之前；切换即时重画；零写
+    const beforeFetches = foldFetches.length
+    foldToggle().dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', '✓ 完工 (2)', 'gamma ✓', 'delta ✓', '全部'], '展开态：完工 tab 排在折叠入口之后、纵览之前')
+    assert.equal(foldToggle().getAttribute('aria-expanded'), 'true', '展开后 aria-expanded 翻成 true')
+    assert.doesNotMatch(foldToggle().getAttribute('title'), /\{/, '展开态 title 同样不残留未填的占位符')
+    assert.equal(foldFetches.length, beforeFetches, '折叠/展开是纯显示偏好：一个写请求都不发')
+    assert.deepEqual(foldFetches.filter((f) => f.method !== 'GET'), [], '全程零写请求')
+
+    // 展开态是会话内变量：数据没变的轮询不得把它悄悄收回去
+    foDoc.getElementById('refreshBtn').dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    await tick(); await tick()
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', '✓ 完工 (2)', 'gamma ✓', 'delta ✓', '全部'], '数据不变的刷新后展开态仍在（态进渲染签名）')
+
+    // 收起：再点一次即回默认形态
+    foldToggle().dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', '✓ 完工 (2)', '全部'], '再点一次收起')
+
+    // 选中项例外：选中的恰是完工 effort 时它的 tab 照常显示、不被折叠波及；计数只数折叠里那几个。
+    // 入口取自「全部」视图——从那里点进一个已完工 effort，正是这条路径。
+    Array.from(foDoc.querySelectorAll('#tabs button')).find((b) => b.textContent === '全部').dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    foDoc.querySelector('#main tr.donegroup').dispatchEvent(new foWin.Event('click', { bubbles: true })) // 先展开纵览的完工组，才点得到 gamma 那行
+    Array.from(foDoc.querySelectorAll('#main tr.effortrow')).find((tr) => tr.querySelector('.name').textContent === 'gamma')
+      .dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    // 计数报的是全部完工 effort，不是折叠里那几个：那个数回答「一共完工了几个」，不随
+    // 「正看着哪一个」跳动（故事 2 要的是这份安心）。折叠里还有一个 delta，gamma 平铺在旁。
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', 'gamma ✓', '✓ 完工 (2)', '全部'], '选中的完工 effort 照常平铺，计数仍是全部完工数（2，不因平铺一个而变 1）')
+    assert.match(foldToggle().getAttribute('title'), /^展开这 1 个完工 effort$/, 'title 数的是折叠里实际会展开的那几个')
+    assert.match(foDoc.querySelector('#main .card h2').textContent, /完了/, '主区与 tab 一致（gamma 的链卡）')
+    // 切走才收：换一个进行中的 effort，gamma 回到折叠里
+    Array.from(foDoc.querySelectorAll('#tabs button')).find((b) => b.textContent === 'beta').dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    assert.deepEqual(foldTabs(), ['alpha', 'beta', '✓ 完工 (2)', '全部'], '切走后 gamma 收回折叠入口，计数回到 2')
+
+    // 双语：英文态折叠入口换词（切换本身零请求）
+    foDoc.getElementById('langBtn').dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    assert.ok(foldTabs().some((x) => x.indexOf('✓ Done (2)') === 0), '英文态折叠入口换文案（✓ Done (2)）')
+    assert.ok(foldToggle().getAttribute('aria-label').indexOf('中文') < 0, '英文态 aria-label 随语言翻')
+    assert.ok(foldToggle().getAttribute('aria-label').length > 0, '英文态 aria-label 非空')
+    foDoc.getElementById('langBtn').dispatchEvent(new foWin.Event('click', { bubbles: true }))
+    assert.deepEqual(jsErrorsFold, [])
+    const foldKeys = Object.keys(foldDom.window.localStorage)
+    assert.ok(!foldKeys.some((k) => k.indexOf('done') >= 0 && k.indexOf('all') < 0), '切换条折叠不新增 localStorage 键（刷新回落收起），现有键：' + foldKeys.join(','))
+
+    // 刷新回落：另开一个浏览器（无记忆），折叠态回到收起——收起是常态、展开是偶发
+    const jsErrorsFold2 = []
+    const vcFold2 = new VirtualConsole()
+    vcFold2.on('jsdomError', (e) => jsErrorsFold2.push(String((e && e.message) || e)))
+    const foldDom2 = uiDom({
+      runScripts: 'dangerously',
+      url: 'http://127.0.0.1:39325/',
+      pretendToBeVisual: true,
+      virtualConsole: vcFold2,
+      beforeParse(window) {
+        window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(allPayload)) })
+      },
+    })
+    await new Promise((r) => setTimeout(r, 150))
+    const foDoc2 = foldDom2.window.document
+    assert.deepEqual(Array.from(foDoc2.querySelectorAll('#tabs button')).map((b) => b.textContent), ['alpha', 'beta', '✓ 完工 (2)', '全部'], '新会话首渲染即收起（展开态不落盘）')
+    assert.deepEqual(jsErrorsFold2, [])
+    // 只剩一个完工 effort 时没有可折叠的东西：不渲染折叠入口（那枚「✓ 完工 (0)」按钮
+    // 是噪音——选中项例外已经把那一个平铺出来了）
+    const onlyDone = JSON.parse(JSON.stringify(allPayload))
+    onlyDone.efforts = [allPayload.efforts[2]]
+    const jsErrorsFold3 = []
+    const vcFold3 = new VirtualConsole()
+    vcFold3.on('jsdomError', (e) => jsErrorsFold3.push(String((e && e.message) || e)))
+    const foldDom3 = uiDom({
+      runScripts: 'dangerously',
+      url: 'http://127.0.0.1:39326/',
+      pretendToBeVisual: true,
+      virtualConsole: vcFold3,
+      beforeParse(window) {
+        window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(onlyDone)) })
+      },
+    })
+    await new Promise((r) => setTimeout(r, 150))
+    const foDoc3 = foldDom3.window.document
+    assert.deepEqual(Array.from(foDoc3.querySelectorAll('#tabs button')).map((b) => b.textContent), ['gamma ✓', '全部'], '只有选中项一个完工 effort：没有折叠入口，平铺出来')
+    assert.equal(foDoc3.querySelector('#tabs button[aria-expanded]'), null, '折叠内空无一物时不渲染入口')
+    assert.deepEqual(jsErrorsFold3, [])
+    // 文件级：展开态是主区渲染的一个输入，得进签名——否则某条别的路重画主区时会按收起的
+    // 形态重建切换条，把用户刚展开的列表又吞回去（jsdom 钉不到这条：点按走的是直接 render()）
+    const sigBody = deckHtml.slice(deckHtml.indexOf('function mainRenderSignature'), deckHtml.indexOf('function snapshotScrolls'))
+    assert.match(sigBody, /doneFoldOpen/, '展开态进了主区渲染签名')
+    foldDom.window.close()
+    foldDom2.window.close()
+    foldDom3.window.close()
+    ok('切换条完工折叠（jsdom + 文件级）：按 chain.complete 分组（进行中平铺在前、完工收进折叠入口、纵览垫底）、计数文案中英双语、折叠入口可 Tab 到达且 aria-expanded 如实、展开/收起即时重画、选中项例外（选中的完工 effort 照常平铺、切走才收）、无可折叠者时不渲染入口、展开态进渲染签名且刷新回落收起、零写请求')
+
+    // ── 项目总览弹窗（票 03 + 票 01 收编）：打开才单拍、坏行标注、行与行内按钮都开为标签页 ──
     const jsErrorsOv = []
     const vcOv = new VirtualConsole()
     vcOv.on('jsdomError', (e) => jsErrorsOv.push(String((e && e.message) || e)))
@@ -2476,6 +3119,7 @@ async function runScenarios(tmp) {
     const ovRowsPayload = {
       roots: [
         { path: '/tmp/fd-ov-cur', name: 'fd-ov-cur', current: true, status: 'ok', stage: 'implement', efforts: 2, tickets: 3, closed: 1, fog: 2 },
+        { path: '/tmp/fd-ov-next', name: 'fd-ov-next', current: false, status: 'ok', stage: 'grill', tickets: 2, closed: 0, fog: 1 },
         { path: '/tmp/fd-ov-nos', name: 'fd-ov-nos', current: false, status: 'no-scratch' },
         { path: '/tmp/fd-ov-bad', name: 'fd-ov-bad', current: false, status: 'unreadable' },
       ],
@@ -2486,10 +3130,11 @@ async function runScenarios(tmp) {
       pretendToBeVisual: true,
       virtualConsole: vcOv,
       beforeParse(window) {
+        let served = '/tmp/fd-ov-cur' // 桩服务端真的记住换根：否则补位规则会把活跃卡拉回旧目录
         window.fetch = (u, opts) => {
           const url = String(u)
           if (url.indexOf('/api/state') >= 0) {
-            return Promise.resolve({ ok: true, json: async () => JSON.parse(JSON.stringify({ ...ws, root: '/tmp/fd-ov-cur', pollMs: 5000, configPath: '/tmp/config.json', recentRoots: [] })) })
+            return Promise.resolve({ ok: true, json: async () => JSON.parse(JSON.stringify({ ...ws, root: served, pollMs: 5000, configPath: '/tmp/config.json', recentRoots: [] })) })
           }
           if (url.indexOf('/api/roots-overview') >= 0) {
             ovCalls.overview++
@@ -2497,7 +3142,8 @@ async function runScenarios(tmp) {
           }
           if (url.indexOf('/api/config') >= 0 && opts && opts.method === 'POST') {
             ovPosts.push(JSON.parse(opts.body))
-            return Promise.resolve({ ok: true, json: async () => ({ ok: true, root: JSON.parse(opts.body).root }) })
+            served = JSON.parse(opts.body).root
+            return Promise.resolve({ ok: true, json: async () => ({ ok: true, root: served }) })
           }
           return Promise.reject(new Error('项目总览场景不该请求别的接口：' + u))
         }
@@ -2513,23 +3159,643 @@ async function runScenarios(tmp) {
     await tick()
     assert.equal(ovCalls.overview, 1, '打开才请求一次')
     const rvRows = Array.from(rvDoc.querySelectorAll('#rootsBody tr.rootrow'))
-    assert.equal(rvRows.length, 3)
+    assert.equal(rvRows.length, 4)
     assert.ok(rvRows[0].querySelector('.chip.cur'), '当前追踪目录带「当前」标示')
     assert.equal(rvRows[0].querySelectorAll('td')[1].textContent, 'Implement 实现', '链阶段给中文标签')
     assert.equal(rvRows[0].querySelectorAll('td')[2].textContent, '1/3', '票计数 closed/total')
     assert.equal(rvRows[0].querySelectorAll('td')[3].textContent, '2', '迷雾数')
-    assert.match(rvRows[1].querySelector('.chip').textContent, /无产物/, '无 .scratch 行标注「无产物」')
-    assert.ok(rvRows[1].className.indexOf('bad') >= 0, '坏行置灰')
-    assert.match(rvRows[2].querySelector('.chip').textContent, /不可读/, '不可读行标注')
-    // 点行 = 既有换目录流：填输入框、POST /api/config、弹窗关闭
-    rvRows[0].dispatchEvent(new rvWin.Event('click', { bubbles: true }))
+    assert.match(rvRows[2].querySelector('.chip').textContent, /无产物/, '无 .scratch 行标注「无产物」')
+    assert.ok(rvRows[2].className.indexOf('bad') >= 0, '坏行置灰')
+    assert.match(rvRows[3].querySelector('.chip').textContent, /不可读/, '不可读行标注')
+    // 收编（票 01）：好行多一枚「开为标签页」按钮，坏行没有（不可点的东西不摆按钮）
+    assert.equal(rvRows[0].querySelectorAll('button.opentab').length, 1)
+    assert.equal(rvRows[1].querySelectorAll('button.opentab').length, 1)
+    assert.equal(rvRows[2].querySelectorAll('button.opentab').length, 0, '无产物行不给开卡入口')
+    assert.equal(rvRows[3].querySelectorAll('button.opentab').length, 0, '不可读行不给开卡入口')
+    // 行内按钮 = 同一个开卡流（既有换根请求），且不误触整行的点击
+    rvRows[1].querySelector('button.opentab').dispatchEvent(new rvWin.Event('click', { bubbles: true }))
     await tick()
-    assert.equal(rvDoc.getElementById('rootsModal').hasAttribute('hidden'), true, '切换后弹窗关闭')
+    assert.equal(rvDoc.getElementById('rootsModal').hasAttribute('hidden'), true, '开卡后弹窗关闭')
     assert.equal(ovPosts.length, 1)
-    assert.equal(ovPosts[0].root, '/tmp/fd-ov-cur', '走既有 POST /api/config 换目录')
+    assert.equal(ovPosts[0].root, '/tmp/fd-ov-next', '走既有 POST /api/config 换根（服务端零新端点）')
+    assert.equal(rvDoc.querySelectorAll('#tabStrip .tabcard').length, 2, '开卡后标签条上是两张卡')
+    assert.equal(rvDoc.querySelectorAll('#tabStrip .tabcard.on .tname')[0].textContent, 'fd-ov-next', '新卡被激活')
+    // 点行 = 同一个开卡流；点当前追踪目录那行只对齐卡面、不重复写盘
+    rvDoc.getElementById('rootsBtn').dispatchEvent(new rvWin.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    const rvRows2 = Array.from(rvDoc.querySelectorAll('#rootsBody tr.rootrow'))
+    rvRows2[0].dispatchEvent(new rvWin.Event('click', { bubbles: true }))
+    await tick()
+    assert.equal(ovPosts.length, 2, '点行同样发起开卡')
+    assert.equal(ovPosts[1].root, '/tmp/fd-ov-cur')
     assert.deepEqual(jsErrorsOv, [])
     ovDom.window.close()
-    ok('项目总览（jsdom）：打开才单拍、当前置顶标示、无产物/不可读分行标注置灰、点行触发现有切换流并关窗')
+    ok('项目总览（jsdom）：打开才单拍、当前置顶标示、无产物/不可读分行标注置灰；行内「开为标签页」与点行都走既有换根流开卡并关窗，当前目录那行只对齐卡面不重复写盘')
+
+    // ── 项目标签条（project-tabs 票 01）：渲染与生命周期、折叠、持久化恢复、补位、每卡状态记忆 ──
+    // 夹具：桩服务端真的记住换根（否则补位规则会把活跃卡拉回旧目录，测的就不是真行为）；
+    // stored 预置 flowdeck-tabs 模拟「这个浏览器上次开过哪些卡」，null 即没记过。
+    const settleTabs = async () => { await new Promise((r) => setTimeout(r, 150)) }   // 与后文 settle 同款首拍等待
+    const TABS_A = '/tmp/fd-tab-alpha'
+    const TABS_B = '/tmp/fd-tab-beta'
+    const TABS_C = '/tmp/fd-tab-gamma'
+    function tabStripDom(port, stored, servedRoot) {
+      const errs = []
+      const vcT = new VirtualConsole()
+      vcT.on('jsdomError', (e) => errs.push(String((e && e.message) || e)))
+      const posts = []
+      let served = servedRoot
+      // 把应答扣住，用来造「请求在途 / 旧载荷晚归」这两个窗口：
+      //   on=true 换根应答扣到 release()；gateState=true 时下一拍状态应答扣到 flushState()
+      const hold = { on: false, release: null, gateState: false, flushState: null }
+      const d = uiDom({
+        runScripts: 'dangerously',
+        url: 'http://127.0.0.1:' + port + '/',
+        pretendToBeVisual: true,
+        virtualConsole: vcT,
+        beforeParse(window) {
+          if (stored) window.localStorage.setItem('flowdeck-tabs', JSON.stringify(stored))
+          window.fetch = (u, opts) => {
+            const url = String(u)
+            if (url.indexOf('/api/state') >= 0) {
+              const payload = {
+                ...ws, root: served, rootName: nodePath.basename(served), pollMs: 5000, configPath: '/tmp/config.json',
+                recentRoots: [{ path: served, exists: true }, { path: TABS_A, exists: true }, { path: TABS_B, exists: true }, { path: TABS_C, exists: true }],
+              }
+              if (hold.gateState) {
+                hold.gateState = false
+                const held = payload   // 这一拍的目录在发请求时就定下了
+                return new Promise((res) => { hold.flushState = () => res({ ok: true, json: async () => JSON.parse(JSON.stringify(held)) }) })
+              }
+              return Promise.resolve({ ok: true, json: async () => JSON.parse(JSON.stringify(payload)) })
+            }
+            if (url.indexOf('/api/config') >= 0 && opts && opts.method === 'POST') {
+              const want = JSON.parse(opts.body).root
+              if (want === '/tmp/fd-tab-deleted') {
+                return Promise.resolve({ ok: false, status: 400, json: async () => ({ error: '这个目录不存在或不是目录。', code: 'config.root-missing' }) })
+              }
+              posts.push(want)
+              if (hold.on) {
+                return new Promise((res) => {
+                  hold.release = () => { served = want; res({ ok: true, json: async () => ({ ok: true, root: served }) }) }
+                })
+              }
+              served = want
+              return Promise.resolve({ ok: true, json: async () => ({ ok: true, root: served }) })
+            }
+            return Promise.reject(new Error('标签条用例不该请求别的接口：' + url))
+          }
+        },
+      })
+      return { d, errs, posts, hold, setServed: (p) => { served = p } }
+    }
+    const cards = (c) => Array.from(c.d.window.document.querySelectorAll('#tabStrip .tabcard'))
+    const cardNames = (c) => cards(c).map((n) => n.querySelector('.tname').textContent)
+    const activeName = (c) => (c.d.window.document.querySelector('#tabStrip .tabcard.on .tname') || { textContent: null }).textContent
+    const storedTabs = (c) => JSON.parse(c.d.window.localStorage.getItem('flowdeck-tabs') || 'null')
+    const openTab = async (c, path) => {
+      const w = c.d.window
+      w.document.getElementById('newTabBtn').dispatchEvent(new w.Event('click', { bubbles: true }))
+      const f = w.document.getElementById('newTabPath')
+      f.value = path
+      f.dispatchEvent(new w.Event('input', { bubbles: true }))
+      f.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+      await tick()
+      await tick()
+    }
+
+    // (1) 首次打开：没记过标签 → 以服务端追踪目录为真相补开一张置为活跃
+    const strip = tabStripDom(39370, null, TABS_A)
+    await settleTabs()
+    assert.equal(cards(strip).length, 1, '没记过标签：只补开服务端追踪目录那一张')
+    assert.equal(activeName(strip), 'fd-tab-alpha')
+    assert.match(cards(strip)[0].querySelector('.temoji').textContent, /\S/, '卡面带自动派生的图形标记')
+    assert.ok(cards(strip)[0].querySelector('.tdot.on'), '活跃卡状态点实心')
+    assert.equal(cards(strip)[0].querySelector('.tdot').getAttribute('aria-hidden'), 'true', '状态点是装饰，语义进整卡 aria-label')
+    assert.match(cards(strip)[0].getAttribute('aria-label'), /项目标签 fd-tab-alpha，当前/, '整卡 aria-label 自载项目名与活跃态')
+    assert.equal(cards(strip)[0].getAttribute('aria-selected'), 'true')
+    assert.ok(cards(strip)[0].querySelector('button.tclose'), '每张卡带关闭件')
+    assert.deepEqual(strip.posts, [], '补位是纯客户端行为，零写请求')
+
+    // (2) 开新标签：换根成功即开卡并激活
+    await openTab(strip, TABS_B)
+    assert.deepEqual(cardNames(strip), ['fd-tab-alpha', 'fd-tab-beta'])
+    assert.equal(activeName(strip), 'fd-tab-beta', '新卡被激活')
+    assert.ok(cards(strip)[0].querySelector('.tdot:not(.on)'), '旧卡状态点转空心（挂起）')
+    assert.deepEqual(strip.posts, [TABS_B], '开卡复用既有 POST /api/config（零新端点）')
+    assert.equal(storedTabs(strip).list.length, 2)
+    assert.equal(storedTabs(strip).active, 1)
+    assert.equal(storedTabs(strip).collapsed, false)
+
+    // (3) 去重：已开过的目录再开一次落到已有卡，不出第二张
+    await openTab(strip, TABS_A)
+    assert.deepEqual(cardNames(strip), ['fd-tab-alpha', 'fd-tab-beta'], '同目录去重：不产生克隆')
+    assert.equal(activeName(strip), 'fd-tab-alpha', '去重后落到那张已有卡并激活')
+    assert.deepEqual(cards(strip).length, 2)
+
+    // (4) 点卡切换：复用同一套换根请求
+    cards(strip)[1].dispatchEvent(new strip.d.window.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.equal(activeName(strip), 'fd-tab-beta')
+    assert.equal(strip.posts[strip.posts.length - 1], TABS_B, '点卡即换根')
+    assert.equal(storedTabs(strip).active, 1, '活跃索引随切换落盘')
+
+    // (5) 每卡界面状态按目录分桶：选中 effort + 票筛选档位，切走再切回原样
+    const effBtn = (c, name) => Array.from(c.d.window.document.querySelectorAll('#tabs button')).find((b) => b.textContent.indexOf(name) === 0)
+    const tierChip = (c) => Array.from(c.d.window.document.querySelectorAll('.tierchip')).find((b) => b.textContent.indexOf('ready-for-agent') === 0)
+    effBtn(strip, 'idea-b').dispatchEvent(new strip.d.window.Event('click'))
+    const tier = tierChip(strip)
+    tier.dispatchEvent(new strip.d.window.Event('click'))
+    assert.ok(tierChip(strip).className.indexOf('on') >= 0, '票筛选档位点亮')
+    cards(strip)[0].dispatchEvent(new strip.d.window.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.equal(activeName(strip), 'fd-tab-alpha', '切到另一张卡')
+    assert.ok(!(effBtn(strip, 'idea-b').className.indexOf('on') >= 0), '另一张卡不带这张卡的选中态（回到默认视图）')
+    assert.equal(strip.d.window.document.querySelectorAll('.tierchip.on').length, 0, '票筛选按目录分桶：另一张卡上没有任何档位点亮')
+    cards(strip)[1].dispatchEvent(new strip.d.window.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.ok(effBtn(strip, 'idea-b').className.indexOf('on') >= 0, '切回那张卡：选中的 effort 还在')
+    assert.ok(tierChip(strip).className.indexOf('on') >= 0, '切回那张卡：票筛选档位还在')
+    assert.equal(storedTabs(strip).list.length, 2, '每卡界面状态是内存级，不落 localStorage（存进去的只有标签条本身）')
+    assert.deepEqual(Object.keys(JSON.parse(storedTabs(strip) ? JSON.stringify(storedTabs(strip)) : '{}')).sort(),
+      ['active', 'collapsed', 'list'], '持久化的只有卡列表/顺序、活跃索引与折叠态')
+
+    // (6) 关挂起卡：只动卡面，活跃卡不动、零写请求
+    const postsBeforeIdleClose = strip.posts.length
+    cards(strip)[0].querySelector('button.tclose').dispatchEvent(new strip.d.window.Event('click', { bubbles: true }))
+    await tick()
+    assert.deepEqual(cardNames(strip), ['fd-tab-beta'], '挂起卡关掉后卡面少一张')
+    assert.equal(activeName(strip), 'fd-tab-beta', '活跃卡不受影响')
+    assert.equal(strip.posts.length, postsBeforeIdleClose, '关挂起卡零写请求')
+
+    // (7) 关活跃卡：落右邻（无右邻落左邻）并复用换根请求把服务端跟过去
+    await openTab(strip, TABS_C)
+    assert.deepEqual(cardNames(strip), ['fd-tab-beta', 'fd-tab-gamma'])
+    cards(strip)[0].querySelector('button.tclose').dispatchEvent(new strip.d.window.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.deepEqual(cardNames(strip), ['fd-tab-gamma'], '关掉末位（无右邻）后只剩一张')
+    assert.equal(activeName(strip), 'fd-tab-gamma')
+    assert.equal(strip.posts[strip.posts.length - 1], TABS_C, '关活跃卡时服务端跟到落点那张卡')
+    assert.deepEqual(strip.errs, [])
+    strip.d.window.close()
+    ok('项目标签条渲染与生命周期（jsdom）：首次以服务端追踪目录补位置活跃；开卡成功即激活、状态点实心/空心、aria 自载项目名；同目录去重不克隆；点卡切换复用换根请求；每卡按目录分桶记住选中 effort 与票筛选档位；关挂起卡零写请求、关活跃卡落右邻并让服务端跟上')
+
+    // (8) 上限 8：第 9 张被拒、提示先关一张，且不发出写请求
+    const cap = tabStripDom(39371, null, TABS_A)
+    await settleTabs()
+    for (const d of ['/p/1', '/p/2', '/p/3', '/p/4', '/p/5', '/p/6', '/p/7']) await openTab(cap, d)
+    assert.equal(cards(cap).length, 8, '开到 8 张为止')
+    const capPosts = cap.posts.length
+    await openTab(cap, '/p/8')
+    assert.equal(cards(cap).length, 8, '第 9 张不出卡')
+    assert.equal(cap.posts.length, capPosts, '超上限连换根请求都不发（先在客户端拦）')
+    assert.match(cap.d.window.document.getElementById('err').textContent, /标签最多 8 张：先关一张再开新的/, '超上限给出可执行的提示')
+    assert.deepEqual(cap.errs, [])
+    cap.d.window.close()
+
+    // (9) 全关：空态出「打开目录」大入口，且不清服务端追踪目录（不产生写请求）
+    const empty = tabStripDom(39372, { list: [TABS_A, TABS_B], active: 1, collapsed: false }, TABS_B)
+    await settleTabs()
+    assert.equal(cards(empty).length, 2, '记忆里的两张卡恢复出来')
+    const emptyPosts = empty.posts.length
+    // 逐张关：每关一次都重新查 DOM（渲染已重建，握着旧节点的监听器闭包带着旧下标）
+    for (let guard = 0; cards(empty).length && guard < 8; guard++) {
+      cards(empty)[0].querySelector('button.tclose').dispatchEvent(new empty.d.window.Event('click', { bubbles: true }))
+      await tick()
+    }
+    await tick()
+    assert.equal(cards(empty).length, 0, '全关后一张卡都不剩')
+    assert.equal(empty.posts.length, emptyPosts, '全关零写请求：关浏览视图不破坏服务端追踪目录')
+    const emptyState = empty.d.window.document.getElementById('tabStrip')
+    assert.match(emptyState.className, /empty/, '空态有自己的形态')
+    assert.equal(emptyState.querySelector('button').textContent, '打开目录', '空态出「打开目录」大入口')
+    assert.match(emptyState.textContent, /项目文件一个没动/, '空态说清「全关不碰项目文件」')
+    assert.deepEqual(storedTabs(empty), { list: [], active: -1, collapsed: false }, '全关态也落盘（重开仍是空态）')
+    assert.deepEqual(empty.errs, [])
+    empty.d.window.close()
+
+    // (10) 折叠：折成细线、可再展开，折叠态持久化；重开页面原样恢复
+    const fold = tabStripDom(39373, { list: [TABS_A, TABS_B], active: 0, collapsed: true }, TABS_A)
+    await settleTabs()
+    const foldBox = fold.d.window.document.getElementById('tabStrip')
+    assert.match(foldBox.className, /collapsed/, '记忆「折叠」→ 重开就折着')
+    assert.equal(cards(fold).length, 0, '折叠态不铺卡面（只留一条细线）')
+    const handle = foldBox.querySelector('button.tabhandle')
+    assert.match(handle.textContent, /fd-tab-alpha/, '把手带着当前项目名（折起来也知道在哪）')
+    assert.equal(handle.getAttribute('aria-expanded'), 'false')
+    handle.dispatchEvent(new fold.d.window.Event('click', { bubbles: true }))
+    assert.deepEqual(cardNames(fold), ['fd-tab-alpha', 'fd-tab-beta'], '点把手展开，卡面回来')
+    assert.equal(storedTabs(fold).collapsed, false, '展开态即时落盘')
+    foldBox.querySelector('button.tabhandle').dispatchEvent(new fold.d.window.Event('click', { bubbles: true }))
+    assert.match(fold.d.window.document.getElementById('tabStrip').className, /collapsed/, '再点折回去')
+    assert.equal(storedTabs(fold).collapsed, true)
+    assert.deepEqual(fold.errs, [])
+    fold.d.window.close()
+
+    // (11) 页面加载以服务端追踪目录为真相对齐：本地记忆里有它但活跃卡指别处 → 活跃卡对齐过去
+    const realign = tabStripDom(39374, { list: [TABS_A, TABS_B, TABS_C], active: 0, collapsed: false }, TABS_C)
+    await settleTabs()
+    assert.deepEqual(cardNames(realign), ['fd-tab-alpha', 'fd-tab-beta', 'fd-tab-gamma'], '重开页面：卡列表与顺序原样恢复')
+    assert.equal(activeName(realign), 'fd-tab-gamma', '活跃卡对齐服务端追踪目录（本地记忆的活跃索引只在与之一致时算数）')
+    assert.deepEqual(realign.posts, [], '对齐是纯客户端行为')
+    assert.deepEqual(realign.errs, [])
+    realign.d.window.close()
+
+    // (12) 补位：本地记忆里没有服务端追踪目录 → 为它补开一张置为活跃
+    const place = tabStripDom(39375, { list: [TABS_A, TABS_B], active: 0, collapsed: false }, TABS_C)
+    await settleTabs()
+    assert.deepEqual(cardNames(place), ['fd-tab-alpha', 'fd-tab-beta', 'fd-tab-gamma'], '无对应卡则补开一张')
+    assert.equal(activeName(place), 'fd-tab-gamma', '补开的那张置为活跃')
+    assert.equal(storedTabs(place).active, 2, '补位后落盘')
+    assert.deepEqual(place.errs, [])
+    place.d.window.close()
+
+    // (13) 失效目录：切不过去，停留原卡片、沿用既有失败提示
+    const DEAD = '/tmp/fd-tab-deleted'
+    const dead = tabStripDom(39376, { list: [TABS_A, DEAD], active: 0, collapsed: false }, TABS_A)
+    await settleTabs()
+    assert.deepEqual(cardNames(dead), ['fd-tab-alpha', 'fd-tab-deleted'], '挂起卡不主动探测磁盘（零请求），失效只在你切回去时暴露')
+    cards(dead)[1].dispatchEvent(new dead.d.window.Event('click', { bubbles: true }))
+    await tick()
+    await tick()
+    assert.match(dead.d.window.document.getElementById('err').textContent, /换目录失败/, '切到失效目录沿用既有失败提示')
+    assert.equal(activeName(dead), 'fd-tab-alpha', '失败后停留原卡片')
+    assert.deepEqual(cardNames(dead), ['fd-tab-alpha', 'fd-tab-deleted'], '失败不吞掉那张失效卡，也不静默')
+    assert.deepEqual(dead.posts, [], '失败的那次不写盘')
+    assert.deepEqual(dead.errs, [])
+    dead.d.window.close()
+    ok('项目标签条边界（jsdom）：上限 8 张拦截且不发写请求；全关出「打开目录」空态且零写请求（不清服务端追踪目录）；折叠成细线可再展开且折叠态持久化；重开恢复卡列表/顺序/活跃索引，活跃卡以服务端追踪目录对齐、缺卡即补开置活跃；切到失效目录沿用既有失败提示并停留原卡片')
+
+    // (14) 关活跃卡落右邻时，落点那张卡自己的界面状态分桶不能被「刚离开那张卡的样子」覆盖
+    const land = tabStripDom(39377, { list: [TABS_A, TABS_B], active: 0, collapsed: false }, TABS_A)
+    await settleTabs()
+    effBtn(land, 'idea-b').dispatchEvent(new land.d.window.Event('click'))             // A 名下：idea-b
+    cards(land)[1].dispatchEvent(new land.d.window.Event('click', { bubbles: true }))  // 切到 B
+    await tick(); await tick()
+    effBtn(land, 'idea-a').dispatchEvent(new land.d.window.Event('click'))             // B 名下：idea-a
+    cards(land)[0].dispatchEvent(new land.d.window.Event('click', { bubbles: true }))  // 切回 A（活跃卡是 A 了）
+    await tick(); await tick()
+    assert.ok(effBtn(land, 'idea-b').className.indexOf('on') >= 0, 'A 切回来时用回自己的选中态')
+    cards(land)[0].querySelector('button.tclose').dispatchEvent(new land.d.window.Event('click', { bubbles: true }))  // 关 A（活跃）落 B
+    await tick(); await tick()
+    assert.equal(activeName(land), 'fd-tab-beta', '关掉活跃卡后落在右邻那张')
+    assert.ok(effBtn(land, 'idea-a').className.indexOf('on') >= 0, '落点卡用回自己的界面状态（没被刚离开那张的覆盖）')
+    assert.ok(!(effBtn(land, 'idea-b').className.indexOf('on') >= 0), '刚离开那张卡的选中态没串过来')
+    assert.deepEqual(land.errs, [])
+    land.d.window.close()
+
+    // (15) 换根在途期间回来的那一拍（还是旧目录）不能把刚点开的卡又拉回去
+    const race = tabStripDom(39378, { list: [TABS_A, TABS_B], active: 0, collapsed: false }, TABS_A)
+    await settleTabs()
+    // 时序：轮询的一拍先发出去（此时服务端还在追 A）→ 用户点 B 切过去 → 那一拍才回来
+    race.hold.gateState = true
+    race.d.window.document.getElementById('refreshBtn').dispatchEvent(new race.d.window.Event('click', { bubbles: true }))
+    await tick()
+    assert.ok(race.hold.flushState, '有一拍状态在途（模拟轮询那一拍正好在切换前发出）')
+    cards(race)[1].dispatchEvent(new race.d.window.Event('click', { bubbles: true }))  // 切到 B
+    await tick()
+    await tick()
+    assert.equal(activeName(race), 'fd-tab-beta', '换根落定后活跃卡是 B')
+    race.hold.flushState()     // 那一拍现在才回来——它报的还是旧目录 A
+    await tick()
+    await tick()
+    assert.equal(activeName(race), 'fd-tab-beta', '切换之前发出、落定之后才回来的旧载荷没把活跃卡拉回 A')
+    assert.equal(storedTabs(race).active, 1, '落盘的活跃索引也是新的那张')
+    assert.deepEqual(race.errs, [])
+    race.d.window.close()
+    // (16) 换过一次根之后补位仍然活着：别处（手改 config.json / 另一个浏览器）把追踪目录改掉照样跟上
+    const after = tabStripDom(39379, { list: [TABS_A, TABS_B], active: 0, collapsed: false }, TABS_A)
+    await settleTabs()
+    cards(after)[1].dispatchEvent(new after.d.window.Event('click', { bubbles: true }))  // 切到 B（换根代数 +1）
+    await tick(); await tick()
+    assert.equal(activeName(after), 'fd-tab-beta')
+    after.setServed(TABS_C)     // 换根之外，追踪目录被改到了 C
+    after.d.window.document.getElementById('refreshBtn').dispatchEvent(new after.d.window.Event('click', { bubbles: true }))
+    await tick(); await tick()
+    assert.deepEqual(cardNames(after), ['fd-tab-alpha', 'fd-tab-beta', 'fd-tab-gamma'], '换过根之后补位照常工作（没被换根次数卡住）')
+    assert.equal(activeName(after), 'fd-tab-gamma', '跟到新追踪目录那张')
+    assert.deepEqual(after.errs, [])
+    after.d.window.close()
+    ok('项目标签条两处竞态（jsdom）：关活跃卡落右邻时不覆盖落点卡自己的界面状态分桶；切换之前发出、落定之后才回来的旧载荷不参与补位、活跃卡不倒退，且换过根之后补位照常工作')
+
+    // ── 挂起与恢复的刷新语义（project-tabs 票 02）：挂起零请求零通知、切回先示旧再补拍、三档不受扰 ──
+    // 夹具比 tabStripDom 多两件事，都为「请求/通知为零」这类断言而存在：
+    //   ① 请求按发出时的追踪目录记账（calls 记 {url, root}）——「这张卡一个请求都没有」得以数出来；
+    //      载荷内容在请求发出那一刻就定死（hold.gateState 扣住的那一拍因此仍报旧目录）。
+    //   ② Notification 桩记账（零通知得以数出来）。
+    // 载荷随 gen 递增而变：标题换成「<项目> 旧/新数据」好断言主区此刻显示的是哪个项目的内容，
+    // 迷雾数跟着递增好造出真的会触发通知的 diff（否则「零通知」是空断言）。
+    const SUS_A = '/tmp/fd-susp-alpha'
+    const SUS_B = '/tmp/fd-susp-beta'
+    const SUS_C = '/tmp/fd-susp-gamma'
+    const SUS_DEAD = '/tmp/fd-susp-deleted'
+    function suspDom(port, stored, servedRoot, opts) {
+      const o = opts || {}
+      const errs = []
+      const vcS = new VirtualConsole()
+      vcS.on('jsdomError', (e) => errs.push(String((e && e.message) || e)))
+      const calls = []            // 每一次请求都记下它发出时服务端在追哪个目录
+      const notes = []            // 桌面通知实例
+      const posts = []
+      let served = servedRoot
+      let gen = 0                 // 递增即「项目文件变了」
+      const hold = { on: false, release: null, gateState: false, flushState: null }
+      function payload() {
+        const name = nodePath.basename(served)
+        return {
+          ...ws,
+          root: served,
+          rootName: name,
+          pollMs: 1000,
+          pollMode: o.pollMode || 'display',
+          configPath: '/tmp/config.json',
+          recentRoots: [{ path: served, exists: true }, { path: SUS_A, exists: true }, { path: SUS_B, exists: true }],
+          efforts: (ws.efforts || []).map((e, i) => {
+            if (i !== 0) return e
+            const fog = e.map.fogCount + gen
+            return {
+              ...e,
+              title: name + (gen ? ' 新数据' : ' 旧数据'),
+              map: { ...e.map, fogCount: fog },
+              chain: deriveChain({ slug: e.slug, map: { exists: e.map.exists, destination: e.map.destination, fogCount: fog }, spec: { exists: e.spec.exists, contentLength: e.spec.contentLength }, tickets: e.tickets }),
+            }
+          }),
+        }
+      }
+      function FakeNotification(title, nopts) {
+        const inst = { title, body: nopts && nopts.body, clicks: [] }
+        inst.addEventListener = (ev, fn) => { if (ev === 'click') inst.clicks.push(fn) }
+        notes.push(inst)
+        return inst
+      }
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = () => Promise.resolve('granted')
+      const d = uiDom({
+        runScripts: 'dangerously',
+        url: 'http://127.0.0.1:' + port + '/',
+        pretendToBeVisual: true,
+        virtualConsole: vcS,
+        beforeParse(window) {
+          window.Notification = FakeNotification
+          if (stored) window.localStorage.setItem('flowdeck-tabs', JSON.stringify(stored))
+          if (o.notify) window.localStorage.setItem('flowdeck-notify', '1')
+          window.fetch = (u, ropts) => {
+            const url = String(u)
+            if (url.indexOf('/api/state') >= 0) {
+              calls.push({ url, root: served })   // 记账用的是请求发出时的追踪目录
+              const body = payload()              // 这一拍的目录在发请求时就定下了
+              if (hold.gateState) {
+                hold.gateState = false
+                return new Promise((res) => { hold.flushState = () => res({ ok: true, json: async () => JSON.parse(JSON.stringify(body)) }) })
+              }
+              return Promise.resolve({ ok: true, json: async () => JSON.parse(JSON.stringify(body)) })
+            }
+            if (url.indexOf('/api/config') >= 0 && ropts && ropts.method === 'POST') {
+              const want = JSON.parse(ropts.body).root
+              if (want === SUS_DEAD) {
+                return Promise.resolve({ ok: false, status: 400, json: async () => ({ error: '这个目录不存在或不是目录。', code: 'config.root-missing' }) })
+              }
+              posts.push(want)
+              served = want
+              return Promise.resolve({ ok: true, json: async () => ({ ok: true, root: served }) })
+            }
+            return Promise.reject(new Error('挂起语义用例不该请求别的接口：' + url))
+          }
+        },
+      })
+      return { d, errs, calls, notes, posts, hold, setServed: (p) => { served = p }, bump: () => { gen++ } }
+    }
+    const susCards = (c) => Array.from(c.d.window.document.querySelectorAll('#tabStrip .tabcard'))
+    const susStamp = (c, i) => (susCards(c)[i].querySelector('.tstamp') || { textContent: null, title: null })
+    const stampWhen = (c, i) => ((susStamp(c, i).title || '').match(/\d\d:\d\d:\d\d/) || [null])[0]   // 完整时刻在 title 里
+    const callsFor = (c, path) => c.calls.filter((x) => x.root === path)
+    const susMain = (c) => c.d.window.document.getElementById('main').textContent
+    const susMeta = (c) => c.d.window.document.getElementById('meta').textContent
+    const susToast = (c) => c.d.window.document.getElementById('toast').textContent
+    const susActive = (c) => c.d.window.document.querySelector('#tabStrip .tabcard.on .tname').textContent
+    const susOpen = async (c, path) => {
+      const w = c.d.window
+      w.document.getElementById('newTabBtn').dispatchEvent(new w.Event('click', { bubbles: true }))
+      const f = w.document.getElementById('newTabPath')
+      f.value = path
+      f.dispatchEvent(new w.Event('input', { bubbles: true }))
+      f.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+      await tick(); await tick()
+    }
+    const susClick = async (c, i) => {
+      susCards(c)[i].dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      await tick(); await tick()
+    }
+    const susRefresh = async (c) => {
+      c.d.window.document.getElementById('refreshBtn').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      await tick(); await tick()
+    }
+    const closeAllTabs = async (c) => {
+      for (let guard = 0; susCards(c).length && guard < 10; guard++) {
+        susCards(c)[0].querySelector('button.tclose').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+        await tick()
+      }
+      await tick()
+    }
+    const POLL_WAIT = 1300   // pollMs=1000：等过一轮多一点，自动拍该发的都发了
+    const SUS_MODES = ['display', 'observe', 'manual']
+
+    // (1) 挂起卡零请求：A 挂起期间，每一个 /api/state 都只属于活跃的那张卡（B）
+    const susp = suspDom(39380, null, SUS_A, { pollMode: 'display' })
+    await settleTabs()
+    await susOpen(susp, SUS_B)                                  // A 挂起、B 活跃
+    assert.equal(susActive(susp), 'fd-susp-beta')
+    assert.match(susStamp(susp, 0).textContent, /^\d\d:\d\d$/, '挂起卡摆出离开那一刻的最近刷新时间')
+    assert.match(susStamp(susp, 0).title, /挂起中/, '时间戳说清「数据停在这一拍」')
+    assert.equal(susStamp(susp, 1).textContent, null, '活跃卡不摆时间戳（顶栏状态行报的是实时的）')
+    const markSuspend = susp.calls.length
+    susp.bump()                                                  // 项目文件在这期间变了：A 那边也有新内容
+    await new Promise((r) => setTimeout(r, POLL_WAIT))           // 展示档轮了一轮不止
+    const whileSuspended = susp.calls.slice(markSuspend)
+    assert.ok(whileSuspended.length >= 1, '展示档下活跃卡照常轮询（挂起那段时间里发了 ' + whileSuspended.length + ' 拍）')
+    assert.deepEqual([...new Set(whileSuspended.map((x) => x.root))], [SUS_B],
+      '挂起期间每一个请求都属于活跃卡（挂起卡 A 的请求数为零，不因刷新模式是「展示」而破例）')
+    const frozenStamp = susStamp(susp, 0).textContent
+    await new Promise((r) => setTimeout(r, POLL_WAIT))
+    assert.equal(susStamp(susp, 0).textContent, frozenStamp, '挂起期间那张卡的刷新时间原样不动（没有伪装刷新）')
+    assert.doesNotMatch(susMain(susp), /fd-susp-alpha/, '挂起卡的内容不顶到主区（那属于另一张卡）')
+    assert.deepEqual(susp.errs, [])
+    susp.d.window.close()
+    ok('挂起卡零请求（jsdom）：展示档下活跃卡照常轮询，而挂起卡的请求数恒为零；卡面摆出离开那一刻的最近刷新时间，挂起期间内容与该时间原样不动（不发起任何伪装刷新）')
+
+    // (2) 切回流程：先呈现离开时的旧内容与旧「最近刷新」→ toast「已恢复刷新」→ 立即补一拍
+    const res = suspDom(39381, null, SUS_A, { pollMode: 'display' })
+    await settleTabs()
+    res.d.window.document.getElementById('main').children[0].scrollTop = 77   // A 名下滚到某处
+    await susOpen(res, SUS_B)                                   // A 挂起（分桶存下它离开时的样子），B 活跃
+    const whenA = stampWhen(res, 0)
+    assert.ok(whenA, 'A 的分桶记下了离开那一刻的完整刷新时刻')
+    res.bump()                                                   // A 的文件在这期间变了
+    res.hold.gateState = true                                   // 扣住切回后紧接着发出的那一拍补拍
+    await susClick(res, 0)                                      // 切回挂起的 A
+    assert.ok(res.hold.flushState, '切回后立刻补了一拍（在途，先不落地）')
+    assert.equal(susActive(res), 'fd-susp-alpha')
+    assert.match(susMain(res), /fd-susp-alpha 旧数据/, '切回瞬间先看到离开时的旧内容（不是白屏，也不是别张卡的内容）')
+    assert.match(susToast(res), /已恢复 .*的刷新/, '弹「已恢复刷新」轻提示（走既有 toast 机制）')
+    assert.match(susToast(res), /旧内容/, '提示里说清刚才显示的是离开时的旧内容')
+    assert.match(susMeta(res), new RegExp('已刷新 ' + whenA), '「最近刷新」先停在离开时那一拍（不把旧内容伪装成新的）')
+    assert.equal(res.d.window.document.getElementById('main').children[0].scrollTop, 77, '滚动位置也一并装回（切走再切回接着干）')
+    res.hold.flushState()                                        // 补拍此刻才落地
+    await tick(); await tick()
+    assert.match(susMain(res), /fd-susp-alpha 新数据/, '补拍落地后是最新的内容')
+    assert.equal(res.d.window.document.getElementById('main').children[0].scrollTop, 77, '补拍重画后滚动位置照样保住')
+    assert.match(susMeta(res), /已刷新 \d\d:\d\d:\d\d/, '补拍后「最近刷新」照常报实时的时刻')
+    assert.deepEqual(res.errs, [])
+    res.d.window.close()
+    ok('切回挂起卡（jsdom）：先呈现离开时的旧内容、旧「最近刷新」时间与滚动位置 → toast「已恢复刷新」→ 立即补上一拍最新内容（中间态逐段断言，不是只看终态）')
+
+    // (3) 三档行为不受扰：挂着两张卡，活跃那张仍按选定的刷新模式行事
+    for (const [i, mode] of SUS_MODES.entries()) {
+      const m = suspDom(39382 + i, null, SUS_A, { pollMode: mode })
+      await settleTabs()
+      await susOpen(m, SUS_B)
+      const afterBoot = m.calls.length
+      await susRefresh(m)
+      assert.equal(m.calls.length, afterBoot + 1, mode + ' 档：主动刷新永远一拍（挂起不改变这一条）')
+      const base = m.calls.length
+      if (mode === 'manual') {
+        await new Promise((r) => setTimeout(r, POLL_WAIT))
+        assert.equal(m.calls.length, base, '惰性档：活跃卡也是零自动请求')
+      } else if (mode === 'observe') {
+        Object.defineProperty(m.d.window.document, 'hidden', { value: true, configurable: true })
+        m.d.window.document.dispatchEvent(new m.d.window.Event('visibilitychange'))
+        await new Promise((r) => setTimeout(r, POLL_WAIT))
+        assert.equal(m.calls.length, base, '观测档：页面不可见时活跃卡也停表')
+        Object.defineProperty(m.d.window.document, 'hidden', { value: false, configurable: true })
+        m.d.window.document.dispatchEvent(new m.d.window.Event('visibilitychange'))
+        await tick(); await tick()
+        assert.equal(m.calls.length, base + 1, '观测档：回前台立即补一拍')
+      } else {
+        await new Promise((r) => setTimeout(r, POLL_WAIT))
+        assert.ok(m.calls.length > base, '展示档：活跃卡按间隔定时轮询')
+      }
+      assert.deepEqual([...new Set(m.calls.slice(afterBoot).map((x) => x.root))], [SUS_B], mode + ' 档：挂起之后全程只有活跃卡的请求')
+      assert.deepEqual(m.errs, [])
+      m.d.window.close()
+    }
+    ok('刷新模式三档不受标签条扰动（jsdom）：挂着两张卡时，活跃卡仍分别是常轮（展示）/ 不可见停表、回前台补拍（观测）/ 零自动请求只手动（惰性），手动刷新三档都一拍')
+
+    // (4) 全关 = 全挂起：零定时器、零请求、零通知，且空态不被任何一拍自动摆回来
+    for (const [i, mode] of SUS_MODES.entries()) {
+      const c = suspDom(39385 + i, { list: [SUS_A, SUS_B], active: 1, collapsed: false }, SUS_B, { pollMode: mode, notify: true })
+      await settleTabs()
+      c.bump()                                                   // 造出真的会触发通知的 diff
+      // 一拍定时拍在途（惰性档本来就没有自动拍，那档走下面的零请求那一半）
+      c.hold.gateState = mode !== 'manual'
+      if (c.hold.gateState) await new Promise((r) => setTimeout(r, 1100))
+      const inFlight = !!c.hold.flushState
+      if (mode !== 'manual') assert.ok(inFlight, mode + ' 档：有一拍定时拍在途')
+      await closeAllTabs(c)
+      assert.equal(susCards(c).length, 0, mode + ' 档：全关后一张卡都不剩')
+      if (c.hold.flushState) c.hold.flushState()                 // 那一拍此刻才回来
+      await tick(); await tick()
+      assert.equal(c.notes.length, 0, mode + ' 档：全关后迟到的定时拍不弹桌面通知（挂起即零通知）')
+      assert.equal(susCards(c).length, 0, mode + ' 档：迟到的那一拍也不把空态的卡摆回来')
+      // 「全关」是使用者明说了「我不想它在动了」：连主动的「立即刷新」也一并停手（票 02 补）
+      const btn = c.d.window.document.getElementById('refreshBtn')
+      assert.equal(btn.disabled, true, mode + ' 档：全关之后「立即刷新」按钮停用（不能看着能点、点了没反应）')
+      assert.match(btn.title, /不发请求/, mode + ' 档：停用原因写在按钮 title 上')
+      assert.match(c.d.window.document.getElementById('tabStrip').textContent, /连「立即刷新」也一并停手/,
+        mode + ' 档：空态把这个决定说出口（禁用按钮的 title 各浏览器不一定出得来）')
+      const base = c.calls.length
+      await susRefresh(c)                                        // 按钮已停用；jsdom 仍会派发被强行构造的 click，闸口必须兜住
+      await tick()
+      assert.equal(c.notes.length, 0, mode + ' 档：全关期间零桌面通知')
+      assert.equal(susCards(c).length, 0, mode + ' 档：空态不会被任何一拍摆回来（关掉的浏览视图不被一拍复活）')
+      assert.equal(c.calls.length, base, mode + ' 档：主动按「立即刷新」也是零请求（不只是没有定时器）')
+      await new Promise((r) => setTimeout(r, POLL_WAIT))
+      assert.equal(c.calls.length, base, mode + ' 档：过了轮询周期仍零自动请求（没有活跃卡就不排表）')
+      // 开一张标签即收回那个表态：按钮恢复、闸口放行、刷新照旧
+      await susOpen(c, SUS_A)
+      assert.equal(btn.disabled, false, mode + ' 档：开一张标签后「立即刷新」恢复可用')
+      assert.doesNotMatch(btn.title, /不发请求/, mode + ' 档：停用原因也一并收回')
+      const back = c.calls.length
+      await susRefresh(c)
+      assert.equal(c.calls.length, back + 1, mode + ' 档：有前台项目了，刷新照旧发请求')
+      assert.deepEqual(c.errs, [])
+      c.d.window.close()
+    }
+    ok('全关即全挂起（jsdom）：三档（观测/展示/惰性）下都零定时器、零请求、零桌面通知；「立即刷新」一并停用且即便强行触发也零请求，空态把这个决定说出口（关掉的浏览视图不会被任何一拍复活）')
+
+    // (5) 失效目录：挂起卡不探测磁盘；切回时换根失败走既有失败提示、停留原卡，且不谎报恢复
+    const deadSus = suspDom(39388, { list: [SUS_A, SUS_DEAD], active: 0, collapsed: false }, SUS_A, { pollMode: 'display' })
+    await settleTabs()
+    await new Promise((r) => setTimeout(r, POLL_WAIT))
+    assert.equal(callsFor(deadSus, SUS_DEAD).length, 0, '挂起卡不主动探测磁盘：指向失效目录也零请求')
+    assert.ok(callsFor(deadSus, SUS_A).length >= 1, '活跃卡的轮询照常（请求确实在发，才谈得上「失效卡那一份是零」）')
+    const deadPosts = deadSus.posts.length
+    await susClick(deadSus, 1)
+    assert.match(deadSus.d.window.document.getElementById('err').textContent, /换目录失败/, '切到失效目录沿用既有失败提示')
+    assert.doesNotMatch(susToast(deadSus), /已恢复/, '失败不弹「已恢复刷新」——刷新压根没恢复')
+    assert.equal(susActive(deadSus), 'fd-susp-alpha', '失败后停留原卡片')
+    assert.match(susMain(deadSus), /fd-susp-alpha/, '主区仍是原来那张卡的内容（失效卡的内容没顶上来）')
+    assert.equal(deadSus.posts.length, deadPosts, '失败的那次不写盘')
+    assert.deepEqual(cardNames(deadSus), ['fd-susp-alpha', 'fd-susp-deleted'], '失效卡不消失、也不被静默吞掉')
+    assert.deepEqual(deadSus.errs, [])
+    deadSus.d.window.close()
+    ok('失效目录（jsdom）：挂起卡不主动探测磁盘（零请求）；切回时换根失败走既有失败提示、停留原卡片、主区内容不串台，且不谎报「已恢复刷新」')
+
+    // (6) 换根落定之前发出、落定之后才回来的那一拍整拍丢弃：不冒充当前项目
+    const race2 = suspDom(39389, null, SUS_A, { pollMode: 'display' })
+    await settleTabs()
+    await susOpen(race2, SUS_B)                                 // A 挂起、B 活跃
+    race2.hold.gateState = true
+    await susRefresh(race2)                                      // 有一拍在途（它发出去时服务端还在追 B）
+    assert.ok(race2.hold.flushState, '有一拍状态在途（模拟轮询那一拍正好在切换前发出）')
+    await susClick(race2, 0)                                    // 切回 A
+    await tick(); await tick()
+    assert.equal(susActive(race2), 'fd-susp-alpha')
+    assert.match(susMain(race2), /fd-susp-alpha/, '主区显示的是 A 的内容')
+    race2.hold.flushState()                                     // 那一拍现在才回来——它报的还是 B
+    await tick(); await tick()
+    assert.equal(susActive(race2), 'fd-susp-alpha', '迟到的那一拍不参与补位、活跃卡不倒退')
+    assert.doesNotMatch(susMain(race2), /fd-susp-beta/, '迟到的那一拍整拍丢弃：已挂起卡的数据不冒充当前项目')
+    assert.deepEqual(race2.errs, [])
+    race2.d.window.close()
+    ok('挂起边界上的迟到载荷（jsdom）：切换之前发出、落定之后才回来的那一拍整拍丢弃——不拿已挂起那张卡的数据冒充当前项目')
+
+    // (7) 服务端把追踪目录换到别处（手改 config.json / 另一个浏览器）而离开的那张卡：
+    //     它同样是被挂起的那张，内容与刷新时间也得按离开时原样存下
+    const ext = suspDom(39390, null, SUS_A, { pollMode: 'display' })
+    await settleTabs()
+    await susOpen(ext, SUS_B)                                  // A 挂起、B 活跃
+    const whenB = (susMeta(ext).match(/已刷新 (\d\d:\d\d:\d\d)/) || [null, null])[1]   // B 此刻的「最近刷新」
+    assert.ok(whenB, 'B 正在前台，状态行报着它这一拍的刷新时刻')
+    ext.setServed(SUS_C)                                       // 别处把追踪目录改到 C
+    await susRefresh(ext)
+    assert.deepEqual(cardNames(ext), ['fd-susp-alpha', 'fd-susp-beta', 'fd-susp-gamma'], '跟上新追踪目录：补开一张 C')
+    assert.equal(susActive(ext), 'fd-susp-gamma')
+    assert.equal(susStamp(ext, 1).textContent, whenB.slice(0, 5), '被留下的那张 B 也按离开时原样记着刷新时刻')
+    ext.bump()                                                 // 三个项目的文件都变了
+    ext.hold.gateState = true
+    await susClick(ext, 1)                                    // 切回 B
+    assert.ok(ext.hold.flushState, '切回后立刻补了一拍（在途）')
+    assert.match(susMain(ext), /fd-susp-beta 旧数据/, '被服务端换根留下的那张，切回来同样是先看到离开时的旧内容')
+    ext.hold.flushState()
+    await tick(); await tick()
+    assert.match(susMain(ext), /fd-susp-beta 新数据/, '补拍落地后跟上最新内容')
+    assert.deepEqual(ext.errs, [])
+    ext.d.window.close()
+    ok('服务端换根留下的卡（jsdom）：追踪目录被别处改掉而被留在挂起的那张，同样按离开时原样存下内容与刷新时刻，切回照样先示旧再补拍')
+
+    // 旧控件退役：界面上不再有「换目录」按钮与单目录输入框，换目录心智只有标签条一套
+    assert.equal(deckHtml.indexOf('id="switchBtn"'), -1, '「换目录」按钮已退役')
+    assert.equal(deckHtml.indexOf('id="rootInput"'), -1, '单目录输入框已退役')
+    for (const deadKey of ['root.input.title', 'root.input.placeholder', 'switch.btn.label', 'switch.btn.title', 'rootmenu.btn.title', 'rootmenu.btn.aria']) {
+      assert.ok(!SHELL_TEXT[deadKey], '退役控件的词条已随之撤掉：' + deadKey)
+    }
+    ok('入口收编（文件级）：「换目录」按钮与单目录输入框连同其词条一并退役，换目录心智只留标签条一套')
+
 
     // ── 技能包弹窗：按钮打开、侧栏清单分组、点条目/内链取正文渲染 Markdown、Esc 关闭 ──
     const jsErrors4 = []
@@ -2988,10 +4254,17 @@ async function runScenarios(tmp) {
     const miscRaw = JSON.stringify(miscPayload, null, 2)
     const miscSkillDocs = {
       README: '# 技能包总览\n\n总览正文。\n',
+      flowchain: '# flowchain\n\n四阶段导读正文。\n',
       'to-spec': '# to-spec\n\n规格技能正文。\n',
       implement: '# implement\n\n实现技能正文。\n',
     }
-    const miscSkillsPayload = ['README', 'to-spec', 'implement'].map((name) => ({ name, category: name === 'README' ? 'overview' : 'engineering', order: 0, title: name, summary: name + ' 一句话', inProgress: false }))
+    // 清单里聚合页与总览同在 overview 分类、次序紧跟总览（服务端就是按 category + order 排的）
+    const miscSkillsPayload = [
+      { name: 'README', category: 'overview', order: 0 },
+      { name: 'flowchain', category: 'overview', order: 1 },
+      { name: 'to-spec', category: 'engineering', order: 0 },
+      { name: 'implement', category: 'engineering', order: 0 },
+    ].map((s) => ({ ...s, title: s.name, summary: s.name + ' 一句话', inProgress: false }))
     const miscCalls = []
     const miscCopies = []
     const miscDownloads = []
@@ -3043,30 +4316,62 @@ async function runScenarios(tmp) {
     await new Promise((r) => setTimeout(r, 20))
     assert.equal(miscRevoked, 1, '对象 URL 用完即释放')
 
-    // 技能联动：每个链格有对应技能的入口（grill 两枚、其余各一枚）；点击打开技能包弹窗并定位该篇
-    const skillBtns = Array.from(zpDoc.querySelectorAll('.stage .skillrow button'))
-    assert.equal(skillBtns.length, 5, '四格共五枚技能入口（grill→grilling/wayfinder，spec/tickets/implement 各一）')
-    assert.deepEqual(skillBtns.map((b) => b.textContent), ['grilling 介绍', 'wayfinder 介绍', 'to-spec 介绍', 'to-tickets 介绍', 'implement 介绍'], '技能名来自阶段定义旁的硬编码映射')
-    const toSpecBtn = skillBtns.find((b) => b.textContent === 'to-spec 介绍')
-    toSpecBtn.dispatchEvent(new zpWin.Event('click', { bubbles: true }))
+    // 技能入口（票 02 减负）：链格内的大按钮行退役，标题行右上角常驻一个小「？」，
+    // 点开打开技能包弹窗并定位到聚合页 flowchain（复用单篇懒加载端点，零新增机制）
+    assert.equal(zpDoc.querySelectorAll('.stage .skillrow').length, 0, '链格内不再有技能按钮行')
+    const chainQ = zpDoc.querySelector('.cardhead .chainq')
+    assert.ok(chainQ, '「流程链」标题行右上角常驻一个「？」')
+    // 阻断冒泡为什么有意义的根：按钮在 .chain 的**兄弟**位置、不在任何 .stage 里。链格本体
+    // 可点复制指引词，只有「？」在 stage 内时两者才会互相干扰；现在结构上就碰不到，
+    // stopPropagation() 是留给日后的护栏（谁再往标题行加个点击处理也不会连带触发）。
+    assert.equal(chainQ.closest('.stage'), null, '「？」不在任何链格内（结构上就不可能误触链格的复制指引）')
+    assert.equal(zpDoc.querySelector('.cardhead.chainhead'), chainQ.parentNode, '「？」挂在链卡的标题行上')
+    assert.equal(chainQ.textContent, '？', '中文态按钮文案是「？」')
+    assert.equal(chainQ.tagName, 'BUTTON', '原生 button（可 Tab 到达、Enter/Space 有默认键盘行为）')
+    chainQ.focus()
+    assert.equal(zpDoc.activeElement, chainQ, '「？」可聚焦（键盘可达）')
+    assert.match(chainQ.getAttribute('aria-label'), /flowchain|四阶段|阶段/, 'aria-label 说明点开的是聚合导读')
+    chainQ.dispatchEvent(new zpWin.Event('click', { bubbles: true }))
     await tick()
     await tick()
-    assert.equal(zpDoc.getElementById('skillsModal').hasAttribute('hidden'), false, '点技能入口打开技能包弹窗')
-    assert.ok(miscCalls.some((u) => u.indexOf('/api/skills/to-spec') >= 0), '复用单篇懒加载端点取该篇')
-    assert.equal(zpDoc.getElementById('skillsDoc').querySelector('h1').textContent, 'to-spec', '清单回来后直接定位到该篇（不是默认总览）')
-    assert.deepEqual(miscCopies, [], '点技能入口不得触发链格的复制指引')
-    assert.ok(Array.from(zpDoc.querySelectorAll('#skillsNav .item')).find((b) => b.querySelector('.en').textContent === 'to-spec').className.indexOf('on') >= 0, '侧栏高亮定位篇')
-    // 已开窗再定位：点另一格的技能入口直接换篇，清单不重拉
+    assert.equal(zpDoc.getElementById('skillsModal').hasAttribute('hidden'), false, '点「？」打开技能包弹窗')
+    assert.ok(miscCalls.some((u) => u.indexOf('/api/skills/flowchain') >= 0), '复用单篇懒加载端点取聚合页')
+    assert.equal(zpDoc.getElementById('skillsDoc').querySelector('h1').textContent, 'flowchain', '清单回来后直接定位到聚合页（不是默认总览）')
+    assert.deepEqual(miscCopies, [], '点「？」不得触发链格的复制指引（点击阻断冒泡）')
+    assert.ok(Array.from(zpDoc.querySelectorAll('#skillsNav .item')).find((b) => b.querySelector('.en').textContent === 'flowchain').className.indexOf('on') >= 0, '侧栏高亮定位篇')
+    // 聚合页在导航里就是一条普通条目，落在总览分类下、与总览篇相邻（不是被藏起来的第二套路）
+    const navCats = Array.from(zpDoc.querySelectorAll('#skillsNav .cat')).map((c) => c.textContent)
+    const navNames = Array.from(zpDoc.querySelectorAll('#skillsNav .item .en')).map((s) => s.textContent)
+    assert.equal(navCats[0], '总览', '总览分类仍排第一')
+    assert.deepEqual(navNames, ['README', 'flowchain', 'to-spec', 'implement'], '聚合页与总览篇同在总览分类下、次序紧跟其后')
+    // 已开窗再定位：点另一条进弹窗的路直接换篇，清单不重拉
     const listCallsBefore = miscCalls.filter((u) => /\/api\/skills\/?$/.test(u)).length
-    skillBtns.find((b) => b.textContent === 'implement 介绍').dispatchEvent(new zpWin.Event('click', { bubbles: true }))
+    zpDoc.getElementById('skillsBtn').dispatchEvent(new zpWin.Event('click', { bubbles: true }))
+    Array.from(zpDoc.querySelectorAll('#skillsNav .item')).find((b) => b.querySelector('.en').textContent === 'to-spec')
+      .dispatchEvent(new zpWin.Event('click', { bubbles: true }))
     await tick()
     await tick()
-    assert.equal(zpDoc.getElementById('skillsDoc').querySelector('h1').textContent, 'implement', '已开窗点别的技能入口直接换篇')
+    assert.equal(zpDoc.getElementById('skillsDoc').querySelector('h1').textContent, 'to-spec', '已开窗从侧栏换篇直接换文')
     assert.equal(miscCalls.filter((u) => /\/api\/skills\/?$/.test(u)).length, listCallsBefore, '清单只拉一次')
+    // 死代码零残留（票 02）：只服务那排大按钮的词条与样式一并撤掉——留在词表和 CSS 里只会
+    // 误导下一个改的人（「链格里还有技能按钮吗」）。渲染层不再碰 s.skills。
+    for (const deadKey of ['stage.skill.label', 'stage.skill.title']) {
+      assert.equal(SHELL_TEXT[deadKey], undefined, '退役按钮的词条已撤掉：' + deadKey)
+    }
+    assert.equal(appCss.indexOf('.skillrow'), -1, '链格技能按钮行的 .skillrow 样式已撤掉')
+    assert.equal(deckHtml.indexOf("el('div', 'skillrow')"), -1, '链格不再渲染 skillrow 容器')
+    // 标题行弹性布局：钉关键声明（jsdom 无布局，钉不了换行后的像素）
+    assert.match(appCss, /\.cardhead\s*\{[^}]*display:\s*flex/, '标题行是弹性布局')
+    assert.match(appCss, /\.cardhead h2\s*\{[^}]*flex:\s*1/, '标题 flex:1')
+    assert.match(appCss, /\.cardhead\.chainhead h2\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/, '换行规则只加在链卡标题行上（min-width:0 + 允许断词），共享的 .cardhead h2 不被顺手改到')
+    assert.doesNotMatch(appCss, /\.cardhead h2\s*\{[^}]*overflow-wrap/, '共享的 .cardhead h2 上不留换行规则的全局副作用')
+    assert.match(appCss, /\.cardhead button\s*\{[^}]*flex:\s*none/, '「？」flex:none（不参与拉伸，钉在行右侧）')
+    assert.ok(deckHtml.indexOf("openSkillsModal(FLOWCHAIN_DOC)") > 0, '「？」定位的目标走 FLOWCHAIN_DOC 常量')
+    assert.match(deckHtml, /var FLOWCHAIN_DOC = 'flowchain'/, '聚合页 slug 是一处具名常量（改名只改这一处 + 文件名）')
     zpDoc.dispatchEvent(new zpWin.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     assert.deepEqual(jsErrorsM, [])
     miscDom.window.close()
-    ok('导出快照 + 技能联动（jsdom）：文件名含项目名与本地时间、内容为原始响应体原样（不重新序列化）、对象 URL 用完释放；链格技能入口打开弹窗即定位该篇、已开窗换篇不重拉清单、不误触复制')
+    ok('导出快照 + 流程链技能入口（jsdom + 文件级）：文件名含项目名与本地时间、内容为原始响应体原样（不重新序列化）、对象 URL 用完释放；链格内按钮行退役（stage.skill.* 词条与 .skillrow 样式零残留）、标题行「？」可 Tab 到达且开弹窗即定位聚合页 flowchain、不误触复制，聚合页在导航里是总览分类下的普通条目；已开窗换篇不重拉清单')
 
     // ── 建骨架指令（票 05）：空态页「工作约定」旁的第二段一键复制 ──
     const jsErrorsS = []
@@ -3093,6 +4398,7 @@ async function runScenarios(tmp) {
     const scWin = scaffoldDom.window
     const scPres = Array.from(scDoc.querySelectorAll('pre.agreement'))
     assert.equal(scPres.length, 2, '空态页有两段可复制文本（工作约定 + 建骨架指令）')
+    assert.doesNotMatch(scPres[0].textContent, /\bgit\b/, '工作约定副本零 git 措辞（custom-guides 01）')
     assert.match(scPres[1].textContent, /\.scratch\/<特性名>\/map\.md/, '骨架指令给出相对追踪目录的 map.md 路径')
     assert.match(scPres[1].textContent, /Destination/, '要求 Destination 一节')
     assert.match(scPres[1].textContent, /Not yet specified/, '要求 Not yet specified 一节')
@@ -3196,9 +4502,9 @@ async function runScenarios(tmp) {
     // 文件级钉：三套 token 字面平级（各自 :root[data-theme=<名>]，无充当无条件 base 的主题），
     // 冷白保留自身色值（朱红 #b1413e，不对齐暖纸的 #b0413e）
     assert.match(deckHtml, /<html[^>]*data-theme="cold"/, '默认冷白是静态标记属性（无 JS / 存储抛错也命中）')
-    const coldCss = await fs.readFile(nodePath.join(HERE, 'styles', 'tokens-cold.css'), 'utf8')
-    const paperCss = await fs.readFile(nodePath.join(HERE, 'styles', 'tokens-paper.css'), 'utf8')
-    const darkCss = await fs.readFile(nodePath.join(HERE, 'styles', 'tokens-github-dark.css'), 'utf8')
+    const coldCss = await fs.readFile(nodePath.join(APP, 'styles', 'tokens-cold.css'), 'utf8')
+    const paperCss = await fs.readFile(nodePath.join(APP, 'styles', 'tokens-paper.css'), 'utf8')
+    const darkCss = await fs.readFile(nodePath.join(APP, 'styles', 'tokens-github-dark.css'), 'utf8')
     assert.match(coldCss, /:root\[data-theme="cold"\] \{/)
     assert.match(paperCss, /:root\[data-theme="paper"\] \{/)
     assert.match(darkCss, /:root\[data-theme="dark"\] \{/)
@@ -3277,7 +4583,7 @@ async function runScenarios(tmp) {
 
     // ── 界面缩放档（ui-appearance 票 04）：倍率数值只住 CSS，控件只设标记属性 + 记本浏览器偏好 ──
     // 文件级钉：档位值域两处必须同集——CSS 多一档是「有倍率没入口」，<option> 多一档是「选了没倍率」
-    const scaleCss = await fs.readFile(nodePath.join(HERE, 'styles', 'app.css'), 'utf8')
+    const scaleCss = await fs.readFile(nodePath.join(APP, 'styles', 'app.css'), 'utf8')
     const cssTiers = [...scaleCss.matchAll(/:root\[data-ui-scale="(\w+)"\] \{ --ui-scale: ([\d.]+); \}/g)]
       .map((m) => [m[1], m[2]])
     assert.deepEqual(cssTiers, [['sm', '0.9'], ['md', '1'], ['lg', '1.125'], ['xl', '1.25']], '四档倍率住在 CSS（JS 不碰数值）')
@@ -3331,6 +4637,557 @@ async function runScenarios(tmp) {
       Object.keys(SHELL_TEXT).filter((k) => /^stage\.(grill|spec|tickets|implement)\./.test(k)), [],
       '四个阶段名/副题不再进界面词表（单一来源在 FLOW_STAGES，经 stageNames 与 chain.stages.en 下发）')
     ok('阶段名单一来源（jsdom）：界面词表撤四阶段名/副题的第二份拷贝，链格/全部视图/通知/项目总览取词全走载荷下发列')
+
+    // ── 指引词自定义段（custom-guides 票 02 + 03，ADR-0004）：config → 服务端 → 界面 → 复制 ──
+    // 票 03 把面从一面扩到五面（四个阶段格 + 票行）、给编辑器加面下拉、给票行那面开三个槽。规则一句话：
+    // 某一面的自定义段非空即整段取代内置段，为空回落内置段，中英各判各的。票行是五面里唯一带槽的一面
+    // （{key}/{path}/{title}），其余四面无槽——不引入通用模板语言（ADR-0004 已否）。
+    // 这组只钉接线，不碰像素（jsdom 无布局能力）。
+    const gdTk = { key: '01', fileName: '01-guides.md', title: '指引票', state: 'open', status: 'ready-for-agent', claimedBy: '', type: 'task', blockedBy: [], progress: null, formatWarnings: [], updatedAt: '2026-09-18T00:00:00Z' }
+    const gdEffort = {
+      slug: 'demo', title: '指引词 demo', git: null, latestAt: '2026-09-18T00:00:00Z',
+      map: { exists: true, title: '', destination: 'Ship it', fog: [], decisions: [], outOfScope: [], fogCount: 0, progress: null, formatWarnings: [] },
+      spec: { exists: true, title: '', contentLength: 12, content: '# 规格\n\n一段内容。\n', formatWarnings: [] },
+      tickets: [gdTk],
+      chain: deriveChain({ slug: 'demo', map: { exists: true, destination: 'Ship it', fogCount: 0 }, spec: { exists: true, contentLength: 12 }, tickets: [gdTk] }),
+    }
+    // guides 就是载荷里那份原值（服务端不拼装，见服务端那组）：测试自己造，不从 config.json 读回来绕一圈。
+    // guides-prefix 票 01 起同一个夹具也带 guidesPrefix（第四个参数），第五个参数替换载荷里的其他字段
+    // （换一套 effort、换成没有 effort 的空态），两票共用同一批助手，不新开夹具。
+    const gdPayload = (guides, guidesPrefix, over) => Object.assign({
+      root: '/tmp/fd-guides', rootName: 'fd-guides', generatedAt: '2026-09-18T00:00:00Z', scratchExists: true,
+      pollMs: 60000, pollMode: 'manual', configPath: '/tmp/config-guides.json', recentRoots: [], stageNames: STAGE_TABLE,
+      efforts: [JSON.parse(JSON.stringify(gdEffort))], guides, guidesPrefix,
+    }, over || {})
+    /** 夹具：带剪贴板（复制内容落 copies）、confirm（恢复默认的二次确认）与 /api/config POST 记录。 */
+    function guidesDom(port, guides, langStored, guidesPrefix, over) {
+      const errs = []
+      const copies = []
+      const posts = []
+      const payload = gdPayload(guides, guidesPrefix, over)
+      const vcG = new VirtualConsole()
+      vcG.on('jsdomError', (e) => errs.push(String((e && e.message) || e)))
+      const d = uiDom({
+        runScripts: 'dangerously',
+        url: 'http://127.0.0.1:' + port + '/',
+        pretendToBeVisual: true,
+        virtualConsole: vcG,
+        beforeParse(window) {
+          if (langStored) window.localStorage.setItem('flowdeck-lang', langStored)
+          window.confirm = () => true
+          Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText: (x) => { copies.push(x); return Promise.resolve() } } })
+          window.fetch = fetchRouter([
+            ['/api/config', (url, opts) => {
+              const sent = JSON.parse(opts.body)
+              posts.push(sent)
+              const applied = {}
+              for (const k of Object.keys(sent)) applied[k] = 'immediate'
+              return Promise.resolve({ ok: true, json: async () => ({ ok: true, applied }) })
+            }],
+            ['/api/state', () => Promise.resolve({ ok: true, json: async () => JSON.parse(JSON.stringify(payload)) })],
+          ], '指引词用例不该请求别的接口')
+        },
+      })
+      return { d, errs, copies, posts }
+    }
+    const gdSettle = async () => { await new Promise((r) => setTimeout(r, 150)) }
+    const gdDoc = (c) => c.d.window.document
+    /** 关窗前先等一拍：剪贴板那声 toast 走 Promise，等它落地再关（关早了回调里 document 已经没了）。 */
+    const gdClose = async (c) => { await tick(); c.d.window.close() }
+    const gdOpenSettings = async (c) => {
+      gdDoc(c).getElementById('settingsBtn').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      await tick()
+    }
+    const gdSave = async (c) => {
+      gdDoc(c).getElementById('settingsSave').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      await tick()
+      await tick()
+    }
+    /** 选面：面下拉的 change 通路——置值 + 派发 change，与真实下拉同一条路。 */
+    const gdPickFace = (c, face) => {
+      const sel = gdDoc(c).getElementById('setGuidesFace')
+      sel.value = face
+      sel.dispatchEvent(new c.d.window.Event('change', { bubbles: true }))
+    }
+    /** 往当前面的某一列打字：置值 + 派发 input（预览边打字边重画，靠的就是这个事件）。 */
+    const gdType = (c, langKey, value) => {
+      const ta = gdDoc(c).getElementById(langKey === 'zh' ? 'setGuidesZh' : 'setGuidesEn')
+      ta.value = value
+      ta.dispatchEvent(new c.d.window.Event('input', { bubbles: true }))
+    }
+    /** 往当前面的前缀那一行打字：同一条 input 通路（单行 input 不是 textarea，助手分开写一处）。 */
+    const gdTypePrefix = (c, value) => {
+      const box = gdDoc(c).getElementById('setGuidesPrefix')
+      box.value = value
+      box.dispatchEvent(new c.d.window.Event('input', { bubbles: true }))
+    }
+    /** 「复制当前效果」按钮：面板控件那一处出口（不带走前缀——它自己就带）。 */
+    const gdCopyCurrent = (c) => {
+      gdDoc(c).getElementById('setGuidesCopy').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      return c.copies[c.copies.length - 1]
+    }
+    const gdCopyStage = (c, i) => {
+      const cell = gdDoc(c).querySelectorAll('.stage')[i]
+      cell.dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      return c.copies[c.copies.length - 1]
+    }
+    const gdCopyNext = (c) => {
+      gdDoc(c).querySelector('.card.next button').dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      return c.copies[c.copies.length - 1]
+    }
+    /** 票行点击复制（票 03 的第五面）：tr.ticket 与 a11y 那组用同一个选择器。 */
+    const gdCopyTicket = (c, i) => {
+      const row = gdDoc(c).querySelectorAll('tr.ticket')[i]
+      row.dispatchEvent(new c.d.window.Event('click', { bubbles: true }))
+      return c.copies[c.copies.length - 1]
+    }
+    const gdBuiltin = gdEffort.chain.stages[3].copyText
+    const gdTkPath = '/tmp/fd-guides/.scratch/demo/issues/01-guides.md'
+    /** 面下拉里某一面的名字：四个阶段面读载荷 stageNames（阶段名单一来源），票行面读界面词表。 */
+    const gdFaceLabel = (c, face) => {
+      const opt = gdDoc(c).querySelector('#setGuidesFace option[value="' + face + '"]')
+      return opt && opt.textContent
+    }
+
+    // 出厂（载荷不带 guides）：五面各复制一次都落内置段
+    const factory = guidesDom(39370, undefined)
+    await gdSettle()
+    for (let i = 0; i < 4; i++) {
+      assert.equal(gdCopyStage(factory, i), gdEffort.chain.stages[i].copyText, `出厂：第 ${i} 面阶段格复制出该面内置段`)
+    }
+    assert.equal(gdCopyNext(factory), gdBuiltin, '出厂：未完工的下一步卡按钮也是内置段')
+    const gdFactoryTk = gdCopyTicket(factory, 0)
+    assert.ok(gdFactoryTk.includes(gdTkPath) && gdFactoryTk.includes('指引票'), '出厂：票行复制出内置段且三槽已实填（票号/路径/标题）')
+    assert.deepEqual(factory.errs, [])
+
+    // 面下拉的空态：默认**不**落在某一面（默认落在 implement 上会让人以为那就是全部五面），
+    // 明确说「还没选」，并把两个输入框与恢复默认一并禁掉——没选面时无处可编辑，这比留个能敲的
+    // 空框更像「这里得先选」。
+    await gdOpenSettings(factory)
+    const gdFace = gdDoc(factory).getElementById('setGuidesFace')
+    assert.deepEqual(Array.from(gdFace.querySelectorAll('option')).map((o) => o.value), ['', 'grill', 'spec', 'tickets', 'implement', 'ticket'], '面下拉是空态项 + 五面')
+    assert.equal(gdFace.value, '', '开窗不默认落在某一面')
+    assert.equal(gdDoc(factory).getElementById('setGuidesZh').disabled, true, '空态：中文 textarea 禁用')
+    assert.equal(gdDoc(factory).getElementById('setGuidesEn').disabled, true, '空态：英文 textarea 禁用')
+    assert.equal(gdDoc(factory).getElementById('setGuidesReset').disabled, true, '空态：恢复默认禁用')
+    assert.equal(gdDoc(factory).getElementById('setGuidesSlotsRow').hidden, true, '空态：槽那一行整行收掉（不留一个配空白的标签）')
+    assert.equal(gdDoc(factory).getElementById('setGuidesPreview').textContent, SHELL_TEXT['set.guides.preview.pick'].zh, '空态：预览明说先选一面')
+    // 下拉里四个阶段面的名字读载荷 stageNames——界面词表里不留第二份（抄一份迟早和 FLOW_STAGES 漂开）
+    for (const id of ['grill', 'spec', 'tickets', 'implement']) {
+      assert.equal(gdFaceLabel(factory, id), STAGE_TABLE.find((f) => f.id === id).title, `下拉里 ${id} 面的名字取自载荷 stageNames（阶段名单一来源）`)
+    }
+    assert.deepEqual(
+      Object.keys(SHELL_TEXT).filter((k) => /^set\.guides\.face\.(grill|spec|tickets|implement)$/.test(k)), [],
+      '四个阶段名不进界面词表（下拉标签读载荷，抄一份就是第二真相）')
+    assert.equal(gdFaceLabel(factory, 'ticket'), SHELL_TEXT['set.guides.face.ticket'].zh, '票行面是五面里唯一没有阶段名来源的一面，标签住词表')
+    // 读不到阶段名时（旧快照没有 stageNames）回落面名本身，不留四个没名字的空选项
+    const gdBare = guidesDom(39385, undefined)
+    await gdSettle()
+    // 旧快照的极端情形：既没有 stageNames，也没有 effort 可回落 → 阶段名彻底读不出
+    gdBare.d.window.eval('state.stageNames = null; state.efforts = []')
+    await gdOpenSettings(gdBare)
+    for (const id of ['grill', 'spec', 'tickets', 'implement']) {
+      assert.equal(gdFaceLabel(gdBare, id), id, `读不到阶段名时回落面名本身（不是空选项）：${id}`)
+    }
+    await gdClose(gdBare)
+
+    // 切面即换内容与预览；编辑器逐面明写「这一面有没有槽」
+    gdPickFace(factory, 'grill')
+    assert.equal(gdDoc(factory).getElementById('setGuidesZh').disabled, false, '选面后 textarea 可编辑')
+    assert.equal(gdDoc(factory).getElementById('setGuidesReset').disabled, false, '选面后恢复默认可用')
+    assert.equal(gdDoc(factory).getElementById('setGuidesPreview').textContent, gdEffort.chain.stages[0].copyText, '切到 grill 面：预览换成该面内置段')
+    assert.equal(gdDoc(factory).getElementById('setGuidesSlotsRow').hidden, false, '选面后槽那一行出现')
+    assert.equal(gdDoc(factory).getElementById('setGuidesSlots').textContent, SHELL_TEXT['set.guides.slots.none'].zh, '阶段面：编辑器明写这一面无槽')
+    gdPickFace(factory, 'ticket')
+    assert.equal(gdDoc(factory).getElementById('setGuidesSlots').textContent, SHELL_TEXT['set.guides.slots.ticket'].zh, '票行面：编辑器明写三个槽')
+    // 「保存后生效」就得显示真会复制出去的那一份：三个槽拿当前 effort 的第一张票实填过，
+    // 而不是把永远不会被逐字复制的模板摆出来
+    assert.equal(gdDoc(factory).getElementById('setGuidesPreview').textContent,
+      SHELL_TEXT['copy.ticket'].zh.replace('{key}', '01').replace('{path}', gdTkPath).replace('{title}', '指引票'),
+      '票行面：预览显示的是实填后的内置段（与点第一张票复制出来的逐字一致）')
+    assert.equal(gdDoc(factory).getElementById('setGuidesPreview').textContent.indexOf('{'), -1, '票行面预览不残留未实填的槽')
+    assert.deepEqual(factory.errs, [])
+    await gdClose(factory)
+
+    // 五面各设自定义段 → 五面各复制一次，都走该面自己的段
+    const five = guidesDom(39381, {
+      grill: { zh: '甲面自定义段' }, spec: { zh: '乙面自定义段' },
+      tickets: { zh: '丙面自定义段' }, implement: { zh: '丁面自定义段' },
+      ticket: { zh: '票行自定义段：{key} / {title}' },
+    })
+    await gdSettle()
+    const gdFive = ['甲面自定义段', '乙面自定义段', '丙面自定义段', '丁面自定义段']
+    for (let i = 0; i < 4; i++) assert.equal(gdCopyStage(five, i), gdFive[i], `第 ${i} 面：阶段格复制走该面自己的自定义段（互不串台）`)
+    assert.equal(gdCopyTicket(five, 0), '票行自定义段：01 / 指引票', '票行：复制走票行那面的自定义段，并实填 {key} 与 {title}')
+    await gdOpenSettings(five)
+    gdPickFace(five, 'ticket')
+    assert.equal(gdDoc(five).getElementById('setGuidesPreview').textContent, '票行自定义段：01 / 指引票', '票行面：自定义段的预览同样实填三槽（预览即生效的那一份）')
+    assert.deepEqual(five.errs, [])
+    await gdClose(five)
+
+    // 其余四面无槽：段里写了 {key} 也原样留着——不引入通用模板语言（ADR-0004 已否）
+    const noSlots = guidesDom(39382, { implement: { zh: '段里的 {key} {path} {title} 都原样留着' } })
+    await gdSettle()
+    assert.equal(gdCopyStage(noSlots, 3), '段里的 {key} {path} {title} 都原样留着', '阶段那四面无槽：槽标记原样留在段里（不会被偷偷填上）')
+    assert.deepEqual(noSlots.errs, [])
+    await gdClose(noSlots)
+
+    // 票行无自定义段 → 回落内置段，且内置段那三个槽照旧实填
+    const tkFallback = guidesDom(39383, { implement: { zh: '只改 implement' } })
+    await gdSettle()
+    const gdTkCopy = gdCopyTicket(tkFallback, 0)
+    assert.ok(gdTkCopy.includes(gdTkPath), '票行回落内置段：{path} 实填成票的路径')
+    assert.ok(gdTkCopy.includes('指引票'), '票行回落内置段：{title} 实填成票标题')
+    assert.ok(gdTkCopy.includes('01'), '票行回落内置段：{key} 实填成票号')
+    assert.equal(gdTkCopy.indexOf('{'), -1, '票行复制结果里不残留未实填的槽')
+    assert.deepEqual(tkFallback.errs, [])
+    await gdClose(tkFallback)
+
+    // 自定义段非空：阶段格与下一步卡按钮都取自定义段，逐字相等（整段取代，不是接在前面）
+    const custom = guidesDom(39371, { implement: { zh: '自定义中文段：请在隔离工作树里实现这张票。', en: 'Custom English segment.' } })
+    await gdSettle()
+    assert.equal(gdCopyStage(custom, 3), '自定义中文段：请在隔离工作树里实现这张票。', '阶段格复制走中文自定义段（整段取代）')
+    assert.equal(gdCopyNext(custom), '自定义中文段：请在隔离工作树里实现这张票。', '未完工的下一步卡按钮同走自定义段')
+    await gdOpenSettings(custom)
+    gdPickFace(custom, 'implement')
+    assert.equal(gdDoc(custom).getElementById('setGuidesZh').value, '自定义中文段：请在隔离工作树里实现这张票。', '预填：中文 textarea 来自 /api/state 的 guides')
+    assert.equal(gdDoc(custom).getElementById('setGuidesEn').value, 'Custom English segment.', '预填：英文 textarea 来自同一份载荷')
+    assert.equal(gdDoc(custom).getElementById('setGuidesPreview').textContent, '自定义中文段：请在隔离工作树里实现这张票。', '预览显示自定义段')
+    assert.equal(gdDoc(custom).getElementById('setGuidesPreview').textContent.indexOf(gdBuiltin), -1, '被取代的内置段不并列显示')
+    assert.deepEqual(custom.errs, [])
+    await gdClose(custom)
+
+    // 中英各判各的：只填中文时，英文界面复制出的仍是内置英文段（不串台）
+    const zhOnly = guidesDom(39372, { implement: { zh: '只有中文有自定义段' } }, 'en')
+    await gdSettle()
+    assert.equal(gdCopyStage(zhOnly, 3), gdEffort.chain.stages[3].en.copyText, '只填中文 → 英文界面复制出内置英文段')
+    await gdOpenSettings(zhOnly)
+    gdPickFace(zhOnly, 'implement')
+    assert.equal(gdDoc(zhOnly).getElementById('setGuidesPreview').textContent, gdEffort.chain.stages[3].en.copyText, '英文界面预览内置英文段（不拿中文那份顶上）')
+    assert.equal(gdDoc(zhOnly).getElementById('setGuidesEn').value, '', '英文 textarea 留空（缺面即回落）')
+    // 下拉里那四个阶段名读的是载荷的 en 列——中文阶段名漏进英文界面，这条挡得住
+    for (const id of ['grill', 'spec', 'tickets', 'implement']) {
+      const opt = gdDoc(zhOnly).querySelector('#setGuidesFace option[value="' + id + '"]')
+      assert.equal(opt.textContent, STAGE_TABLE.find((f) => f.id === id).en.title, `英文界面：下拉里 ${id} 面的名字取英文列（阶段名单一来源随语言）`)
+    }
+    assert.equal(gdDoc(zhOnly).querySelector('#setGuidesFace option[value="ticket"]').textContent, SHELL_TEXT['set.guides.face.ticket'].en, '票行面标签随语言翻')
+    assert.deepEqual(zhOnly.errs, [])
+    await gdClose(zhOnly)
+
+    // 「整段取代」是逐字的：边缘空白原样带出去，粘出来的与 config.json 里存的同一个字符串
+    const spaced = guidesDom(39376, { implement: { zh: '  前后留白也算内容  ' } })
+    await gdSettle()
+    assert.equal(gdCopyStage(spaced, 3), '  前后留白也算内容  ', '边缘空白原样带出（取用时不悄悄去空白，粘出去的与存盘的逐字一致）')
+    await tick() // 剪贴板那声 toast 走 Promise，等它落地再关窗（关早了回调里 document 已经没了）
+    assert.deepEqual(spaced.errs, [])
+    spaced.d.window.close()
+
+    // 清空 = 回落：已存的值只剩空白等同没填（取用时去首尾空白）
+    const blank = guidesDom(39373, { implement: { zh: '   \n  ' } })
+    await gdSettle()
+    assert.equal(gdCopyStage(blank, 3), gdBuiltin, '只存了空白等同没填 → 复制回落内置段')
+    assert.equal(gdCopyNext(blank), gdBuiltin, '下一步卡按钮同样回落内置段')
+    // 预览读的是输入框里的草稿：敲进空白也该立刻回落，不必等保存
+    await gdOpenSettings(blank)
+    gdPickFace(blank, 'implement')
+    gdType(blank, 'zh', '   \n  ')
+    assert.equal(gdDoc(blank).getElementById('setGuidesPreview').textContent, gdBuiltin, '草稿只剩空白 → 预览同步回落内置段')
+    assert.deepEqual(blank.errs, [])
+    await gdClose(blank)
+
+    // 保存：没动就不进补丁；只动中文就发中英两列（恢复默认清的是两列，发半边会给另一列留旧值）
+    const saver = guidesDom(39374, { implement: { zh: '旧中文', en: 'Old English' } })
+    await gdSettle()
+    await gdOpenSettings(saver)
+    await gdSave(saver)
+    assert.deepEqual(saver.posts, [], '一字未改时不提交任何字段（沿用 settingsChanges 的差异收集）')
+    await gdOpenSettings(saver)
+    gdPickFace(saver, 'implement')
+    gdDoc(saver).getElementById('setGuidesZh').value = '新中文'
+    await gdSave(saver)
+    assert.deepEqual(saver.posts[saver.posts.length - 1], { guides: { implement: { zh: '新中文', en: 'Old English' } } }, '只改中文也把英文原样带回（不丢另一列）')
+    assert.match(gdDoc(saver).getElementById('toast').textContent, /已生效：指引词/, 'toast 的字段名走 set.field.guides')
+    assert.deepEqual(saver.errs, [])
+    await gdClose(saver)
+
+    // 五面并存时保存：改一面，其余四面原样带回（补丁以初值起底、只换当前面）
+    const multi = guidesDom(39384, { grill: { zh: '甲留' }, spec: { zh: '乙留' }, implement: { zh: '丙留' } })
+    await gdSettle()
+    await gdOpenSettings(multi)
+    gdPickFace(multi, 'spec')
+    gdDoc(multi).getElementById('setGuidesZh').value = '乙改'
+    await gdSave(multi)
+    assert.deepEqual(multi.posts[multi.posts.length - 1], { guides: { grill: { zh: '甲留', en: '' }, spec: { zh: '乙改', en: '' }, implement: { zh: '丙留', en: '' } } }, '只改 spec 一面，其余四面原样带回（不吞掉没编辑过的面）')
+    assert.deepEqual(multi.errs, [])
+    await gdClose(multi)
+
+    // 恢复默认：只清**当前**这一面的中英两列，其余四面不碰（二次确认挡住误点）
+    const reset = guidesDom(39375, { implement: { zh: '要恢复的中文', en: 'English to restore' }, grill: { zh: '保留的中文' } })
+    await gdSettle()
+    await gdOpenSettings(reset)
+    gdPickFace(reset, 'grill')
+    assert.equal(gdDoc(reset).getElementById('setGuidesZh').value, '保留的中文', '预填：切到 grill 面显示的是这一面存的值')
+    gdPickFace(reset, 'implement')
+    assert.equal(gdDoc(reset).getElementById('setGuidesZh').value, '要恢复的中文', '切回 implement 面：另一面的草稿没被冲掉')
+    let gdConfirmText = ''
+    reset.d.window.confirm = (msg) => { gdConfirmText = msg; return true }
+    gdDoc(reset).getElementById('setGuidesReset').dispatchEvent(new reset.d.window.Event('click', { bubbles: true }))
+    assert.equal(gdConfirmText, SHELL_TEXT['set.guides.reset.confirm'].zh.replace('{face}', gdFaceLabel(reset, 'implement')), '恢复默认走二次确认，且确认文案点名当前面')
+    assert.equal(gdDoc(reset).getElementById('setGuidesZh').value, '', '恢复默认清空当前面的中文段')
+    assert.equal(gdDoc(reset).getElementById('setGuidesEn').value, '', '恢复默认清空当前面的英文段')
+    assert.equal(gdDoc(reset).getElementById('setGuidesPreview').textContent, gdBuiltin, '恢复后预览回落内置段')
+    gdPickFace(reset, 'grill')
+    assert.equal(gdDoc(reset).getElementById('setGuidesZh').value, '保留的中文', '恢复默认不碰其余四面（切回去还在）')
+    await gdSave(reset)
+    assert.deepEqual(reset.posts[reset.posts.length - 1], { guides: { implement: { zh: '', en: '' }, grill: { zh: '保留的中文', en: '' } } }, '保存把当前面两列一起清空、其余面原样带回')
+    assert.deepEqual(reset.errs, [])
+    await gdClose(reset)
+
+    // 文件级钉：设置弹窗的「指引词」分区、面下拉与两个 textarea 真在 markup 里（jsdom 那几组是接线面，
+    // 控件本身没了它们会一起「安静地绿」——所以分区与控件各钉一次）
+    const guidesCat = deckHtml.match(/<div class="fcat" data-i18n="settings\.guides">([\s\S]*?)<\/div>/)
+    assert.ok(guidesCat, '设置弹窗有「指引词」分区（.fcat 标题）')
+    assert.equal(guidesCat[1], SHELL_TEXT['settings.guides'].zh, '分区标题的 markup 默认态与词表中文列一致')
+    assert.ok(deckHtml.includes('<select id="setGuidesFace">'), '设置弹窗有面下拉（#setGuidesFace）')
+    assert.ok(deckHtml.includes('<label for="setGuidesFace"'), '面下拉有配对的 <label for>（点标签能聚焦）')
+    assert.equal(deckHtml.match(/<option value="(?:grill|spec|tickets|implement|ticket)"/g).length, 5, '下拉里五个面各一项（与五面同集）')
+    assert.equal(deckHtml.match(/<textarea id="setGuides(\w+)"/g).length, 2, '指引词分区里有两个 textarea（中英各一）')
+    assert.ok(deckHtml.includes('<label for="setGuidesZh"'), 'textarea 有配对的 <label for>（点标签能聚焦）')
+    assert.match(appCss, /\.frow textarea \{[^}]*min-height:/, 'styles/app.css 补了 .frow textarea 规则（设置弹窗第一个 textarea）')
+    assert.match(appCss, /textarea:focus-visible/, 'textarea 进得了焦点环（漏了就只靠浏览器默认，键盘用户看不见焦点）')
+
+    // 文档面：config.example.json 与两份 README 的 config 段都得列出 guides 字段，
+    // 否则「配置文档同步」这条只在代码里成立、文档那头没人知道这个字段存在。
+    const gdExCfg = JSON.parse(await fs.readFile(nodePath.join(ROOT, 'config.example.json'), 'utf8'))
+    assert.deepEqual(gdExCfg.guides, {}, 'config.example.json 有 guides 字段，且出厂是空对象（缺面 = 回落内置段）')
+    const gdNote = gdExCfg['字段说明'] && gdExCfg['字段说明'].guides
+    assert.ok(typeof gdNote === 'string' && gdNote.length > 40, 'config.example.json 的「字段说明」有 guides 条目')
+    for (const faceId of ['grill', 'spec', 'tickets', 'implement', 'ticket']) {
+      assert.ok(gdNote.includes(faceId), `config.example.json 的 guides 说明点明 ${faceId} 面`)
+    }
+    for (const slot of ['{key}', '{path}', '{title}']) {
+      assert.ok(gdNote.includes(slot), `config.example.json 的 guides 说明点明票行那面的槽 ${slot}`)
+    }
+    for (const readme of ['README.zh-CN.md', 'README.md']) {
+      const txt = await fs.readFile(nodePath.join(ROOT, readme), 'utf8')
+      assert.match(txt, /"guides":\s*\{\}/, `${readme} 的 config.json 段列出 guides 字段`)
+    }
+    ok('指引词可整段改写 · 五面铺开（custom-guides 02 + 03 · jsdom + 文件级 + 文档）：出厂五面各复制一次都落内置段；面下拉带空态（不默认落在某一面，未选面时输入框与恢复默认一并禁用）、切面即换内容与预览、下拉里四个阶段名读载荷 stageNames；五面各设自定义段各复制一次都走该面自己的段（互不串台）；票行那面 {key}/{path}/{title} 实填、其余四面无槽（段里的槽标记原样留着）；票行无自定义段回落内置段且内置段三槽照旧实填；只填中文时英文界面仍复制内置英文段；只敲全白等同没填（但有内容的边缘空白原样带出）、预览与复制同步回落；预填来自载荷、保存只提交变更字段（改动中英成对发、五面并存时只换当前面、其余面原样带回）、恢复默认只清当前面；「指引词」分区、面下拉与两个 textarea 在案，.frow textarea 与焦点环规则到位；config.example.json 与两份 README 的 config 段同步了 guides 字段')
+
+    // ── 指引词前缀（guides-prefix 票 01，ADR-0004）：一段每次都一样的文字，复制那一刻贴在最前面 ──
+    // 沿用上一组的夹具与两个点击助手（gdCopyStage / gdCopyTicket / gdCopyNext / gdSave / gdPickFace），
+    // 只多两个助手：往前缀那行打字（gdTypePrefix）与「复制当前效果」按钮（gdCopyCurrent）。
+    // 规则一句话：某一面存的前缀去首尾空白后非空即 `前缀 + 空行 + 正文` 原样贴出，为空（缺面/空串/
+    // 全空白）就正文原样、连一个空行都不多。两处出口（链格与下一步卡、票行）走同一段拼装代码；
+    // 票行那面**先填槽再拼前缀**，所以文件名里带 {key} 的票不会被二次加工。
+    const gpPfx = '/using-git-worktrees /implement'
+    const gpJoins = (p, body) => p + '\n\n' + body
+    const gpTicketBuiltin = SHELL_TEXT['copy.ticket'].zh.replace('{key}', '01').replace('{path}', gdTkPath).replace('{title}', '指引票')
+
+    // 链格 / 下一步卡 / 票行三处出口：前缀 + 空行 + 正文
+    const wired = guidesDom(39400, undefined, null, { implement: gpPfx, ticket: '/implement' })
+    await gdSettle()
+    assert.equal(gdCopyStage(wired, 3), gpJoins(gpPfx, gdBuiltin), '链格复制 = 前缀 + 空行 + 内置段')
+    assert.equal(gdCopyNext(wired), gpJoins(gpPfx, gdBuiltin), '未完工的下一步卡按钮同一段拼装（两处出口不各拼一次）')
+    assert.equal(gdCopyTicket(wired, 0), gpJoins('/implement', gpTicketBuiltin), '票行复制 = 前缀 + 空行 + 填槽后的内置段')
+    // 两面各填各的：只给 implement 存了前缀，其余四面（以及票行没存的那些）一个字节都不多
+    assert.equal(gdCopyStage(wired, 0), gdEffort.chain.stages[0].copyText, '没存前缀的面：正文原样（不互相继承）')
+    assert.equal(gdCopyStage(wired, 2), gdEffort.chain.stages[2].copyText, '没存前缀的面：正文原样（连一个空行都不多）')
+    assert.deepEqual(wired.errs, [])
+    await gdClose(wired)
+
+    // 空前缀 = 不贴：空串与全空白都按没填处理，正文逐字原样
+    const emptyPfx = guidesDom(39401, undefined, null, { implement: '', ticket: '   \n  ' })
+    await gdSettle()
+    assert.equal(gdCopyStage(emptyPfx, 3), gdBuiltin, '空前缀（空串）→ 正文原样')
+    assert.equal(gdCopyTicket(emptyPfx, 0), gpTicketBuiltin, '全空白前缀等同没填 → 票行正文原样')
+    assert.deepEqual(emptyPfx.errs, [])
+    await gdClose(emptyPfx)
+
+    // 非空则**原样**贴出：边缘空白不藏一步看不见的去空白（「整段取代」那条纪律同样适用于前缀）
+    const spacedPfx = guidesDom(39402, undefined, null, { implement: '  ' + gpPfx + '  ' })
+    await gdSettle()
+    assert.equal(gdCopyStage(spacedPfx, 3), gpJoins('  ' + gpPfx + '  ', gdBuiltin), '边缘空白原样带出（粘出去的与存盘的逐字一致）')
+    await gdClose(spacedPfx)
+
+    // 自定义段与前缀同时生效：两者正交，前缀带技能调用、段重写正文
+    const bothPfx = guidesDom(39403, { implement: { zh: '自定义正文段' } }, null, { implement: gpPfx })
+    await gdSettle()
+    assert.equal(gdCopyStage(bothPfx, 3), gpJoins(gpPfx, '自定义正文段'), '自定义段非空时：前缀 + 空行 + 自定义段')
+    assert.deepEqual(bothPfx.errs, [])
+    await gdClose(bothPfx)
+
+    // 单趟填槽：票路径/标题里本来就有的 {key} 不被前缀这一趟二次加工
+    const braceTk = { key: '02', fileName: '02-{key}-花括号.md', title: '标题里也有 {key}', state: 'open', status: 'ready-for-agent', claimedBy: '', type: 'task', blockedBy: [], progress: null, formatWarnings: [], updatedAt: '2026-09-18T00:00:00Z' }
+    const braceEffort = Object.assign(JSON.parse(JSON.stringify(gdEffort)), {
+      tickets: [braceTk],
+      chain: deriveChain({ slug: 'demo', map: { exists: true, destination: 'Ship it', fogCount: 0 }, spec: { exists: true, contentLength: 12 }, tickets: [braceTk] }),
+    })
+    const braces = guidesDom(39404, undefined, null, { ticket: '/implement' }, { efforts: [braceEffort] })
+    await gdSettle()
+    const braceCopy = gdCopyTicket(braces, 0)
+    assert.equal((braceCopy.match(/\{key\}/g) || []).length, 2, '票路径与标题里各有一个 {key}，原样留着（单趟填槽，不被二次替换）')
+    assert.ok(braceCopy.startsWith('/implement\n\n请实现票 02（'), '票行那面先填槽再拼前缀：前缀落在最前，正文里 {key} 已实填成票号')
+    assert.deepEqual(braces.errs, [])
+    await gdClose(braces)
+
+    // 面板：预览含前缀，前缀那一眼要与正文分得开（不显示它，面板就是在说谎）
+    const panelPfx = guidesDom(39405, undefined, null, { implement: '/grilling' })
+    await gdSettle()
+    await gdOpenSettings(panelPfx)
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPrefix').disabled, true, '未选面：前缀那一行一并禁用（没选面时无处可编辑）')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesCopy').disabled, true, '未选面：复制当前效果一并禁用')
+    gdPickFace(panelPfx, 'implement')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPrefix').disabled, false, '选面后前缀可编辑')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPrefix').value, '/grilling', '预填：前缀来自 /api/state 的 guidesPrefix')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPreview').textContent, gpJoins('/grilling', gdBuiltin), '预览含前缀：前缀 + 空行 + 正文')
+    const gpSpan = gdDoc(panelPfx).querySelector('#setGuidesPreview .gp-pfx')
+    assert.ok(gpSpan, '预览里前缀住自己的元素（与正文一眼分得开）')
+    assert.equal(gpSpan.textContent, '/grilling', '预览里那一眼就是前缀本身')
+    // 预览读草稿：改一个字符就重画，不必等保存
+    gdTypePrefix(panelPfx, '/grilling /using-git-worktrees')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPreview').textContent, gpJoins('/grilling /using-git-worktrees', gdBuiltin), '草稿改前缀 → 预览同步')
+    gdType(panelPfx, 'zh', '新正文')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPreview').textContent, gpJoins('/grilling /using-git-worktrees', '新正文'), '前缀与正文各改各的，互不吞')
+    // 换面再切回：前缀草稿不丢（与自定义段同一套草稿机制）
+    gdPickFace(panelPfx, 'ticket')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPrefix').value, '', '切到票行面：那是它自己存的那一份（没存即空）')
+    gdPickFace(panelPfx, 'implement')
+    assert.equal(gdDoc(panelPfx).getElementById('setGuidesPrefix').value, '/grilling /using-git-worktrees', '切回 implement 面：前缀草稿还在')
+    assert.deepEqual(panelPfx.errs, [])
+    await gdClose(panelPfx)
+
+    // 「复制当前效果」= 此刻真的粘得出的那一段：读**已存**值、不读输入框草稿
+    // （所以有未存草稿时它与「保存后生效」的预览并不相同——那正是「当前」二字的含义）
+    const currentPfx = guidesDom(39406, { implement: { zh: '已存的自定义段' } }, null, { implement: '/已存的前缀' })
+    await gdSettle()
+    await gdOpenSettings(currentPfx)
+    gdPickFace(currentPfx, 'implement')
+    gdTypePrefix(currentPfx, '/没存的前缀')
+    gdType(currentPfx, 'zh', '没存的正文')
+    assert.equal(gdCopyCurrent(currentPfx), gpJoins('/已存的前缀', '已存的自定义段'), '有未存草稿时：复制当前效果给的是已存那份（读已存值，不读草稿）')
+    // 草稿与已存相同时，它与预览逐字一致——两个控件此时说的是同一件事
+    gdTypePrefix(currentPfx, '/已存的前缀')
+    gdType(currentPfx, 'zh', '已存的自定义段')
+    assert.equal(gdCopyCurrent(currentPfx), gdDoc(currentPfx).getElementById('setGuidesPreview').textContent, '草稿与已存相同时：复制当前效果与预览逐字一致')
+    // 没存自定义段时它给内置段（术语上比「内置段」准：它复制的不止内置段）
+    gdPickFace(currentPfx, 'ticket')
+    assert.equal(gdCopyCurrent(currentPfx), gpTicketBuiltin, '票行面：没有自定义段时复制内置段并按第一张票实填（这面没存前缀，原样不加空行）')
+    assert.deepEqual(currentPfx.errs, [])
+    await gdClose(currentPfx)
+
+    // 保存：前缀与 guides 一起提交（各自按「脏了才发」，发了就是整份——服务端整份替换）
+    const savePfx = guidesDom(39407, { implement: { zh: '旧正文', en: 'Old English' } }, null, { implement: '/旧前缀', ticket: '/票行前缀' })
+    await gdSettle()
+    await gdOpenSettings(savePfx)
+    await gdSave(savePfx)
+    assert.deepEqual(savePfx.posts, [], '一字未改时不提交任何字段（沿用 settingsChanges 的差异收集）')
+    await gdOpenSettings(savePfx)
+    gdPickFace(savePfx, 'implement')
+    gdTypePrefix(savePfx, '/新前缀')
+    gdDoc(savePfx).getElementById('setGuidesZh').value = '新正文'
+    await gdSave(savePfx)
+    assert.deepEqual(savePfx.posts[savePfx.posts.length - 1], {
+      guides: { implement: { zh: '新正文', en: 'Old English' }, ticket: { zh: '', en: '' } },
+      guidesPrefix: { implement: '/新前缀', ticket: '/票行前缀' },
+    }, '改前缀与改正文同一次保存一起发；其余面原样带回（只发当前面会把其余面清掉）')
+    assert.match(gdDoc(savePfx).getElementById('toast').textContent, /已生效：.*前缀/, 'toast 的字段名走 set.field.guidesPrefix，不回落成裸字段名')
+    assert.deepEqual(savePfx.errs, [])
+    await gdClose(savePfx)
+
+    // 只改前缀时不必带上 guides（不拿没动过的字段去覆盖磁盘上的那份）
+    const onlyPfx = guidesDom(39408, { implement: { zh: '磁盘上的正文' } }, null, { implement: '/磁盘上的前缀' })
+    await gdSettle()
+    await gdOpenSettings(onlyPfx)
+    gdPickFace(onlyPfx, 'implement')
+    gdTypePrefix(onlyPfx, '/只改前缀')
+    await gdSave(onlyPfx)
+    assert.deepEqual(onlyPfx.posts[onlyPfx.posts.length - 1], { guidesPrefix: { implement: '/只改前缀' } }, '只改前缀就只发 guidesPrefix')
+    assert.deepEqual(onlyPfx.errs, [])
+    await gdClose(onlyPfx)
+
+    // 恢复默认：语义与范围一字不改——只清当前面的中英两列，**不碰前缀**
+    const resetPfx = guidesDom(39409, { implement: { zh: '要恢复的中文' } }, null, { implement: '/要留下的前缀' })
+    await gdSettle()
+    await gdOpenSettings(resetPfx)
+    gdPickFace(resetPfx, 'implement')
+    gdDoc(resetPfx).getElementById('setGuidesReset').dispatchEvent(new resetPfx.d.window.Event('click', { bubbles: true }))
+    assert.equal(gdDoc(resetPfx).getElementById('setGuidesZh').value, '', '恢复默认清空当前面的中文段')
+    assert.equal(gdDoc(resetPfx).getElementById('setGuidesPrefix').value, '/要留下的前缀', '恢复默认不碰前缀（它点的是「撤销一段写坏的自定义段」）')
+    assert.equal(gdDoc(resetPfx).getElementById('setGuidesPreview').textContent, gpJoins('/要留下的前缀', gdBuiltin), '恢复后预览回落内置段，前缀照旧在前面')
+    await gdSave(resetPfx)
+    assert.deepEqual(resetPfx.posts[resetPfx.posts.length - 1], { guides: { implement: { zh: '', en: '' } } },
+      '保存把正文清空，而补丁里根本没有 guidesPrefix 这一格（服务端是部分补丁，磁盘上那一份前缀原样留着）')
+    assert.deepEqual(resetPfx.errs, [])
+    await gdClose(resetPfx)
+
+    // 选了一个阶段面但当前追踪目录没有 effort：复制当前效果禁用（别把一句「没有内置段可显示」复制走）
+    const noEffort = guidesDom(39412, undefined, null, { implement: '/grilling' }, { efforts: [] })
+    await gdSettle()
+    await gdOpenSettings(noEffort)
+    gdPickFace(noEffort, 'implement')
+    assert.equal(gdDoc(noEffort).getElementById('setGuidesCopy').disabled, true, '阶段面 + 无 effort：复制当前效果禁用')
+    assert.equal(gdDoc(noEffort).getElementById('setGuidesReset').disabled, false, '阶段面 + 无 effort：恢复默认照常可用（它不依赖内置段）')
+    gdPickFace(noEffort, 'ticket')
+    assert.equal(gdDoc(noEffort).getElementById('setGuidesCopy').disabled, false, '票行面不依赖 effort（内置段是模板），照常可复制')
+    assert.deepEqual(noEffort.errs, [])
+    await gdClose(noEffort)
+
+    // 负面项：完工收尾文案、工作约定、建骨架指令三处**不带**前缀（它们不是指引词出口），逐字与今天一致
+    const doneTk = { key: '01', fileName: '01-done.md', title: '收尾票', state: 'closed', status: 'resolved', claimedBy: '', type: 'task', blockedBy: [], progress: null, formatWarnings: [], updatedAt: '2026-09-18T00:00:00Z' }
+    const doneEffort = {
+      slug: 'done', title: '收尾 demo', git: null, latestAt: '2026-09-18T00:00:00Z',
+      map: { exists: true, title: '', destination: 'Ship it', fog: [], decisions: [], outOfScope: [], fogCount: 0, progress: null, formatWarnings: [] },
+      spec: { exists: true, title: '', contentLength: 12, content: '# 规格\n\n一段内容。\n', formatWarnings: [] },
+      tickets: [doneTk],
+      chain: deriveChain({ slug: 'done', map: { exists: true, destination: 'Ship it', fogCount: 0 }, spec: { exists: true, contentLength: 12 }, tickets: [doneTk] }),
+    }
+    assert.equal(doneEffort.chain.complete, true, '收尾夹具：四格全绿（否则这组钉的不是收尾那条路）')
+    const noPfxDone = guidesDom(39410, undefined, null, { implement: gpPfx, ticket: gpPfx }, { efforts: [doneEffort] })
+    await gdSettle()
+    assert.equal(gdCopyNext(noPfxDone), SHELL_TEXT['next.done-copy'].zh.replace('{title}', '收尾 demo'), '完工收尾文案逐字与今天一致（不贴前缀）')
+    assert.deepEqual(noPfxDone.errs, [])
+    await gdClose(noPfxDone)
+    const noPfxEmpty = guidesDom(39411, undefined, null, { implement: gpPfx, ticket: gpPfx }, { efforts: [] })
+    await gdSettle()
+    const gdEmptyBtns = gdDoc(noPfxEmpty).querySelectorAll('.card.empty button')
+    assert.equal(gdEmptyBtns.length, 2, '空态页两段一键复制（工作约定 / 建骨架指令）')
+    gdEmptyBtns[0].dispatchEvent(new noPfxEmpty.d.window.Event('click', { bubbles: true }))
+    assert.equal(noPfxEmpty.copies[noPfxEmpty.copies.length - 1], SHELL_TEXT['empty.agreement'].zh, '工作约定逐字与今天一致（不贴前缀）')
+    gdEmptyBtns[1].dispatchEvent(new noPfxEmpty.d.window.Event('click', { bubbles: true }))
+    assert.equal(noPfxEmpty.copies[noPfxEmpty.copies.length - 1], SHELL_TEXT['empty.scaffold'].zh, '建骨架指令逐字与今天一致（不贴前缀）')
+    assert.deepEqual(noPfxEmpty.errs, [])
+    await gdClose(noPfxEmpty)
+    // 服务端下发的阶段 copyText 里不出现前缀（证明拼装没漏到别处：拼装只在界面复制那一刻）
+    for (const st of gdEffort.chain.stages) {
+      assert.doesNotMatch(st.copyText + st.en.copyText, /\/using-git-worktrees|\/implement/, `服务端下发的 ${st.id} 段里没有前缀`)
+    }
+    ok('指引词前缀（guides-prefix 01 · jsdom）：链格/下一步卡与票行两处出口同一段拼装（= 前缀 + 空行 + 正文，票行先填槽再拼前缀所以单趟）；两面各填各的互不串台；空前缀正文原样（连一个空行都不多）、空串/全空白等同没填、非空则原样贴出；自定义段与前缀同时生效；预览含前缀且前缀那一眼可与正文区分；「复制当前效果」读已存值（未存草稿时给已存那份，草稿与已存相同时与预览逐字一致）、阶段面无 effort 时禁用；恢复默认清正文而前缀原样留着；换面再切回前缀不丢；未选面时输入框与两个按钮一并禁用；完工收尾文案/工作约定/建骨架指令三处不带前缀且逐字与今天一致；服务端下发的阶段段里不出现前缀')
+
+    // 文件级与文档组：markup 有前缀输入行、两个 textarea 压矮、文档三处讲清 guidesPrefix
+    assert.ok(deckHtml.includes('<input id="setGuidesPrefix"'), '设置弹窗有前缀输入行（单行 input，不是 textarea）')
+    assert.ok(deckHtml.includes('<label for="setGuidesPrefix"'), '前缀输入行有配对的 <label for>（点标签能聚焦）')
+    assert.ok(deckHtml.includes('<button id="setGuidesCopy"'), '设置弹窗有「复制当前效果」按钮')
+    assert.doesNotMatch(SHELL_TEXT['set.guides.copy'].zh, /…|\.\.\./, '「复制当前效果」标签无省略号（省略号在这套 UI 里表示后面跟着确认框）')
+    assert.match(deckHtml, /<textarea id="setGuidesZh" rows="4"/, '两个 textarea 的行数都降到位（行数与样式表最小高度是两处独立事实，必须同时动）')
+    assert.match(deckHtml, /<textarea id="setGuidesEn" rows="4"/, '两个 textarea 的行数都降到位（英文那一个同样）')
+    // 样式表那条字面量断言是三层里最脆的，保留它的理由只有一个：没有它「textarea 被谁又调高了」不会有人发现
+    assert.match(appCss, /\.frow textarea \{[^}]*min-height: 6rem[^}]*resize: vertical/, 'styles/app.css 的 .frow textarea 最小高度降到位，且 resize: vertical 留着（要更高的人自己拖）')
+    assert.doesNotMatch(appCss, /#setGuidesZh/, '样式表不为单个控件新开 id 选择器（规则保持通用）')
+    const gpExCfg = JSON.parse(await fs.readFile(nodePath.join(ROOT, 'config.example.json'), 'utf8'))
+    assert.deepEqual(gpExCfg.guidesPrefix, {}, 'config.example.json 有 guidesPrefix 字段，且出厂是空对象（不贴前缀）')
+    const gpNote = gpExCfg['字段说明'] && gpExCfg['字段说明'].guidesPrefix
+    assert.ok(typeof gpNote === 'string' && gpNote.length > 40, 'config.example.json 的「字段说明」有 guidesPrefix 条目')
+    assert.ok(gpNote.includes('{ 面名: 字符串 }'), 'config.example.json 的 guidesPrefix 说明点明形状是 { 面名: 字符串 }（中英不分列）')
+    for (const readme of ['README.zh-CN.md', 'README.md']) {
+      const txt = await fs.readFile(nodePath.join(ROOT, readme), 'utf8')
+      assert.match(txt, /"guidesPrefix":\s*\{\}/, `${readme} 的 config.json 段列出 guidesPrefix 字段`)
+      assert.match(txt, /^\s*-\s+\*\*.*`guidesPrefix`.*\*\*|^-\s+\*\*.*`guidesPrefix`.*\*\*/m, `${readme} 的 config 段落讲清了 guidesPrefix 的规则`)
+    }
+    const ctxTxt = await fs.readFile(nodePath.join(ROOT, 'CONTEXT.md'), 'utf8')
+    assert.ok(/^\*\*前缀（prefix）\*\*/m.test(ctxTxt), 'CONTEXT.md 的词表里有「前缀」词条')
+    assert.ok(!/唯一以「是哪张票」为身份/.test(ctxTxt), 'CONTEXT.md 不再把票行说成唯一以「是哪张票」为身份的一面（四个阶段面的内置段同样以 effort 为身份）')
+    ok('指引词前缀 · 文件级与文档（guides-prefix 01）：markup 有前缀输入行与「复制当前效果」按钮（标签无省略号）、两个 textarea 的行数与样式表最小高度都降到位且没有为它新开 id 选择器；config.example.json 与两份 README 都讲清了 guidesPrefix；CONTEXT.md 有「前缀」词条且那句「唯一以…为身份」已改掉')
 
     // ── 英文态整页无残留（english-ui 票 02）：真跑界面，逐视图扫中文残留 ──
     /** 界面夹具用的英文用户数据：票标题、地图小节、规格正文全 ASCII——判据字段名（Status /
@@ -3446,8 +5303,24 @@ async function runScenarios(tmp) {
       assert.deepEqual(rows.filter((r) => !String(r[1] || '').trim()).map((r) => r[0]), [], '英文态 ' + attr + ' 无空文案')
       assert.deepEqual(rows.filter((r) => r[1] !== shWin.UI_TEXT[r[0]].en).map((r) => r[0]), [], '英文态 ' + attr + ' 逐字取英文列')
     }
+    // 项目标签条（票 01）：动态渲染出来的卡面不在静态壳的取词面上，得单独钉一遍英文
+    const shStrip = shDoc.getElementById('tabStrip')
+    const shCards = Array.from(shStrip.querySelectorAll('.tabcard'))
+    assert.equal(shCards.length, 1, '英文态标签条以服务端追踪目录补位出卡')
+    assert.equal(shCards[0].querySelector('.tname').textContent, 'fd-shell-en', '卡面出目录 basename')
+    assert.match(shCards[0].getAttribute('aria-label'), /Project tab fd-shell-en, Current/, '整卡 aria-label 出英文')
+    assert.match(shCards[0].getAttribute('title'), /Click to switch to this project/, '卡面 title 出英文')
+    assert.equal(shCards[0].querySelector('button.tclose').getAttribute('aria-label'), 'Close the fd-shell-en tab', '关闭件 aria-label 出英文')
+    assert.match(shStrip.querySelector('button.tabhandle').getAttribute('aria-label'), /Current project: fd-shell-en/, '折叠把手 aria-label 出英文')
+    assert.deepEqual(cjkResidue(shDoc).filter((h) => /tabcard|tdot|tabhandle/.test(h)), [], '标签条零中文残留（卡面、状态点与把手）')
     shClick(shTab('All'))
     assert.deepEqual(cjkResidue(shDoc), [], '「全部」视图零残留（表头、折叠行、行 aria-label）')
+    // 切换条的完工折叠入口（票 01）：英文态自己也得零残留，展开后 gamma 才点得到
+    const shFold = () => shDoc.querySelector('#tabs button[aria-expanded]')
+    assert.match(shFold().textContent, /^✓ Done \(\d+\)$/, '英文态折叠入口出英文文案与计数')
+    assert.equal(shFold().getAttribute('aria-expanded'), 'false', '英文态折叠入口的展开态照实自报')
+    shClick(shFold())
+    assert.equal(shFold().getAttribute('aria-expanded'), 'true', '英文态展开后 aria-expanded 翻 true')
     shClick(shTab('gamma'))
     assert.match(shDoc.querySelector('.next .label').textContent, /all done|complete/i, '完工卡的标签也随语言')
     assert.deepEqual(cjkResidue(shDoc), [], '完工 effort（四格全绿）零残留')
@@ -3455,14 +5328,19 @@ async function runScenarios(tmp) {
     assert.ok(shDoc.querySelector('.chip.infer'), '无 map 的 effort 亮推定标注')
     assert.deepEqual(cjkResidue(shDoc), [], '推定标注零残留')
     shClick(shTab('alpha'))
+    // 流程链标题行的「？」（票 02）：英文态出英文问号，aria-label 说明点开的是四阶段导读
+    const shQ = shDoc.querySelector('.cardhead .chainq')
+    assert.equal(shQ.textContent, '?', '英文态「？」出英文问号')
+    assert.match(shQ.getAttribute('aria-label'), /four-stage flowchain tour/i, '英文态 aria-label 说明点开的是四阶段导读')
+    assert.deepEqual(cjkResidue(shDoc), [], '「？」零中文残留（文案、title 与 aria-label）')
     // 前沿徽标面板
     shOpen('frontierBadge')
     assert.deepEqual(cjkResidue(shDoc), [], '前沿面板零残留（分组名、票行 title 与 aria-label）')
     shEsc()
-    // 常用目录下拉（含失效条目与删除按钮 tooltip）
-    shDoc.getElementById('rootInput').focus()
+    // 开新标签菜单（含失效条目、删除按钮 tooltip 与顶部路径框）
+    shOpen('newTabBtn')
     await tick()
-    assert.deepEqual(cjkResidue(shDoc), [], '常用目录下拉零残留（「当前」「目录不存在」徽标与删除提示）')
+    assert.deepEqual(cjkResidue(shDoc), [], '开新标签菜单零残留（「当前」「目录不存在」徽标、删除提示与路径框）')
     shDoc.dispatchEvent(new shWin.Event('click', { bubbles: true }))
     // 设置弹窗（表单各项、说明行、轮询模式三个选项）
     shOpen('settingsBtn')
@@ -3506,7 +5384,7 @@ async function runScenarios(tmp) {
     assert.deepEqual(cjkResidue(shDoc), [], '空态页零残留（约定与骨架指令都出英文）')
     assert.deepEqual(jsErrorsShell, [])
     shellDom.window.close()
-    ok('英文态整页无残留（jsdom）：链卡/票表/地图规格/全部视图/完工卡/推定标注/前沿面板/常用目录/设置/项目总览/票正文/技能弹窗（含正文）/空态页逐视图扫中文，含 title、aria-label、placeholder 与文档标题')
+    ok('英文态整页无残留（jsdom）：链卡/票表/地图规格/全部视图/切换条完工折叠入口/完工卡/推定标注/前沿面板/项目标签条/开新标签菜单/设置/项目总览/票正文/技能弹窗（含正文）/空态页逐视图扫中文，含 title、aria-label、placeholder 与文档标题')
 
     // ── 英文态内容随语言（票 02）：一键复制、桌面通知、报错措辞三处人话都翻；未知 code 回落原文 ──
     const jsErrorsLang = []
@@ -3556,6 +5434,14 @@ async function runScenarios(tmp) {
     const lgDoc = langDom2.window.document
     const lgWin = langDom2.window
     const lgClick = (node) => node.dispatchEvent(new lgWin.Event('click', { bubbles: true }))
+    /** 为一个路径走完整开新标签流（顶栏按钮 → 路径框 → Enter），供报错措辞用例复用。 */
+    const lgOpenTabField = (path) => {
+      lgClick(lgDoc.getElementById('newTabBtn'))
+      const f = lgDoc.getElementById('newTabPath')
+      f.value = path
+      f.dispatchEvent(new lgWin.Event('input', { bubbles: true }))
+      f.dispatchEvent(new lgWin.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    }
     // 一键复制随语言：票行 = 实现指引词，链格 = 阶段指引词（与服务端英文列同源），下一步卡 = 当前步指引词
     lgClick(lgDoc.querySelector('tr.ticket'))
     await tick()
@@ -3587,10 +5473,8 @@ async function runScenarios(tmp) {
     assert.ok(!/Grill 拷问|To-Spec 规格|四阶段完成/.test(stageNote.body), '通知里的阶段名与「完成」用英文说法：' + stageNote.body)
     assert.match(stageNote.body, /Implement/, '推进通知的阶段名出英文（stageNameById 读 stageNames 表）')
     // 服务端报错按 code 措辞
-    const rootInput = lgDoc.getElementById('rootInput')
     langCfgReply = { error: '这个目录不存在或不是目录：/tmp/xyz', code: 'config.root-missing' }
-    rootInput.value = '/tmp/xyz'
-    lgClick(lgDoc.getElementById('switchBtn'))
+    lgOpenTabField('/tmp/xyz')
     await tick()
     await tick()
     const banner = lgDoc.getElementById('err')
@@ -3599,7 +5483,7 @@ async function runScenarios(tmp) {
     assert.match(banner.textContent, /does not exist|not a directory/i, '按 code 出英文措辞')
     // 未知 code 回退原文：界面不猜，宁可把服务端原话说出来
     langCfgReply = { error: '一种界面还没学过的错法。', code: 'mystery.unknown-case' }
-    lgClick(lgDoc.getElementById('switchBtn'))
+    lgOpenTabField('/tmp/xyz')
     await tick()
     await tick()
     assert.ok(lgDoc.getElementById('err').textContent.indexOf('一种界面还没学过的错法。') >= 0, '未知 code 回退服务端原文：' + lgDoc.getElementById('err').textContent)
@@ -3709,7 +5593,7 @@ async function runScenarios(tmp) {
       ok('技能弹窗按语言取篇（jsdom）：英文态清单与单篇都带 ?lang=en、侧栏与正文出英文；中文态两类请求都不带参数且不挂标注；镜像缺篇回退中文原文（响应头 X-FlowDeck-Doc-Lang 自报 zh）并在正文上方挂英文标注、缓存路径同挂；切语言重取清单而单篇按语言各自缓存')
     }
 
-    ok('界面运行时：jsdom 真跑一遍无报错，流程链渲染、effort 切换、票表、换目录控件都对')
+    ok('界面运行时：jsdom 真跑一遍无报错，流程链渲染、effort 切换、票表、项目标签条与开新标签菜单都对')
   }
 }
 

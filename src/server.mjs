@@ -1,19 +1,23 @@
 /**
- * flowdeck/server.mjs — 流程板本地服务（零依赖，Node ≥ 18）。
+ * flowdeck/src/server.mjs — 流程板本地服务（零依赖，Node ≥ 18）。
  *
  * 这是什么：「追踪 .scratch 产物 + 流程链可视化」的通用本地 Web 服务。
  * 它不依赖任何 npm 包；任何 Agent（Claude Code / Cursor / 手写都行）
  * 只要把产物按约定写进 .scratch/，打开浏览器就能看到 grill → to-spec → to-tickets → implement
  * 走到了哪一步、下一步该干什么。
  *
- * 本目录是自包含的：整体拷到任何地方都能跑（node server.mjs 或 npm start），
- * 配置全部读本目录的 config.json，追踪目录既能在配置里写死，也能在网页右上角
+ * 本仓库是自包含的：整体拷到任何地方都能跑（node src/server.mjs 或 npm start），
+ * 配置全部读仓库根的 config.json，追踪目录既能在配置里写死，也能在网页右上角
  * 随时换（POST /api/config，改完立即生效并写回 config.json）。
  *
  * 路由：
  *   GET  /            界面（本目录的 index.html）
  *   GET  /styles/*.css  界面的运行时 CSS（app.css + 各主题 tokens，白名单放行）
  *   GET  /api/state   当前追踪目录的完整盘点（JSON，含 pollMs / pollMode / host / port / tokenEnabled / configPath / recentRoots 常用目录、
+ *                     guides 指引词自定义段（五面：grill / spec / tickets / implement / ticket，各 { zh, en }；
+ *                     guidesPrefix 指引词前缀（与 guides 平级，形状 { 面名: 字符串 }，中英不分列）；
+ *                     原值下发，界面据此取代内置指引词、给票行那面填 {key}/{path}/{title} 三个槽，
+ *                     并在复制那一刻把前缀贴在最前面；服务端不参与拼装）、
  *                     stageNames 四阶段人话名表（flowchain.mjs FLOW_STAGES 的直通车，链格/通知/项目总览共用）、
  *                     每 effort 一条 git 旁证字段——最近提交或 null，~15s TTL、不随指纹走）。
  *                     双层短路：磁盘没变的那一拍由服务端指纹短路（不重扫不重传，复用上一拍 JSON；
@@ -32,7 +36,7 @@
  *                     docs/skill-intros/、英文镜像只读 docs/skill-intros-en/，两个目录都定死，无路径穿越面；
  *                     lang=en 先取同名英文镜像篇，缺篇回退中文原文；实际所服务的语言随
  *                     X-FlowDeck-Doc-Lang 头下发，界面据此挂「暂无英文」标注）
- *   POST /api/config  改配置并持久化到 config.json：root（热切换+收录常用目录）、pollMs（下一拍生效）、
+ *   POST /api/config  改配置并持久化到 config.json：root（热切换+收录常用目录）、pollMs / pollMode / guides / guidesPrefix（下一拍生效）、
  *                     token（立即接管校验；空串=清除）、host/port（写盘，重启后生效）（要求带 X-FlowDeck 头，防跨站写）
  *   POST /api/recent-roots  删一条常用目录并写回 config.json（防护同上；删未知条目幂等成功）
  *
@@ -61,14 +65,16 @@ import { FLOW_STAGES } from './flowchain.mjs'
 const execFile = promisify(execFileCb)
 
 const HERE = nodePath.dirname(fileURLToPath(import.meta.url))
-const DEFAULT_CONFIG_PATH = nodePath.join(HERE, 'config.json')
+// 仓库根：config.json 与 docs/ 都住根目录，src/ 只是代码与界面资源； HERE 指 src/ 本身。
+const ROOT = nodePath.resolve(HERE, '..')
+const DEFAULT_CONFIG_PATH = nodePath.join(ROOT, 'config.json')
 const INDEX_HTML = nodePath.join(HERE, 'index.html')
 // 技能介绍文档目录（docs/skill-intros/，随仓库自包含）。只读这一目录下的 .md，没有路径穿越面。
-const SKILLS_DOCS_DIR = nodePath.join(HERE, 'docs', 'skill-intros')
+const SKILLS_DOCS_DIR = nodePath.join(ROOT, 'docs', 'skill-intros')
 /* 英文镜像目录（english-ui 票 03）：与中文篇同名一一对应，只翻 title/summary 与正文。
    中文目录是清单的唯一骨架——分类、顺序、开发中标一律以它为准，镜像不是第二套元数据；
    镜像缺篇时清单打 noEnglish 标注、单篇回退中文原文。 */
-const SKILLS_DOCS_EN_DIR = nodePath.join(HERE, 'docs', 'skill-intros-en')
+const SKILLS_DOCS_EN_DIR = nodePath.join(ROOT, 'docs', 'skill-intros-en')
 const SKILL_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]*$/
 const SKILL_CATEGORY_RANK = { overview: 0, engineering: 1, productivity: 2, misc: 3, 'in-progress': 4 }
 // 界面引用的静态资源白名单：只放行 styles/ 里点名的文件，不做通用静态服务，也就没有路径穿越。
@@ -79,7 +85,62 @@ const STATIC_FILES = {
   '/styles/tokens-github-dark.css': [nodePath.join(HERE, 'styles', 'tokens-github-dark.css'), 'text/css; charset=utf-8'],
 }
 
-const DEFAULT_CONFIG = { root: '', port: 3210, host: '127.0.0.1', pollMs: 5000, pollMode: 'observe', recentRoots: [], token: '' }
+const DEFAULT_CONFIG = { root: '', port: 3210, host: '127.0.0.1', pollMs: 5000, pollMode: 'observe', recentRoots: [], token: '', guides: {}, guidesPrefix: {} }
+
+/** 指引词自定义段每一面的语言列（custom-guides 票 02，票 03 起服务五面）：形状 `guides.<面名>.{zh, en}`。
+ *  一个 config 字段装全部面——config.json 里一处可找，界面也只发一个字段。
+ *  五个面名是 grill / spec / tickets / implement（四个阶段格，面名即 flowchain.mjs 的阶段 id）加 ticket
+ *  （点票行复制那面）；它们住在界面的面下拉里，服务端只把原值搬下去，所以这里不必也不该知道有五面。 */
+const GUIDE_LANGS = Object.freeze(['zh', 'en'])
+
+/** 指引词自定义段的归一（custom-guides 票 02，ADR-0004）：合规返回归一后的对象，不合规返回 undefined。
+ *  合规的判据只有一条——每面是个对象，且里面的键**只有** zh/en 两个、都得是字符串。缺面与空串都合法：
+ *  那正是「回落内置段」这一事实本身，由客户端按非空判定，不靠键的缺席。
+ *  「只有 zh/en」是有意收紧：面里多出来的键没有第二个消费者，悄悄丢掉就等于静默吞掉一个笔误
+ *  （键名打错的人会以为改生效了）。面名反过来不设限，原样透传——票 03 把面数从一扩到五、给票行
+ *  开三个槽时，服务端因此一个字都不用改（照旧只搬值不拼装），面下拉与取词全在界面那一侧。
+ *  两条路径宽严不同，各有各的理由：POST /api/config 把 undefined 当非法、整体 400 且一个字都不写盘
+ *  （沿用既有语义）；读 config.json 那条（applyConfigText）把它当坏值回落空对象并告警一次，与 pollMode
+ *  归一同姿态——手改文件写坏一个面的形状不该让整份配置失效，更不该让服务起不来。 */
+export function normalizeGuides(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const out = {}
+  for (const face of Object.keys(raw)) {
+    // __proto__ 不是面名。JSON.parse 会把它落成自有属性（读得到），而 out[face] = … 走的是原型
+    // setter（会改 out 的原型而不是加键）——两种行为都不是「一个叫 __proto__ 的面」，早拒最省事。
+    if (face === '__proto__') return undefined
+    const one = raw[face]
+    if (!one || typeof one !== 'object' || Array.isArray(one)) return undefined
+    const langs = {}
+    for (const key of Object.keys(one)) {
+      if (GUIDE_LANGS.indexOf(key) < 0) return undefined
+      if (typeof one[key] !== 'string') return undefined
+      langs[key] = one[key]
+    }
+    out[face] = langs
+  }
+  return out
+}
+
+/** 指引词前缀每一面的归一（guides-prefix 票 01）：形状 `guidesPrefix.<面名>` = 一个字符串。
+ *  比 guides 窄一维是刻意的——前缀装的是每次都一样的一段话（典型是一条斜杠命令），
+ *  中英文本无差别，分列会造出「两列不等」这种界面表示不了的状态（面下拉只有一行输入框）。
+ *  合规的判据只有一条——每面是个字符串。缺面与空串都合法：空串就是「空前缀 = 不贴」这一事实本身，
+ *  由客户端按非空判定，不靠键的缺席。面名照 guides 那一侧的纪律原样透传、不校验。
+ *  两条路径宽严不同，与 guides 同一套处置：POST 把 undefined 当非法、整体 400 且一个字都不写盘；
+ *  读 config.json 那条把它当坏值回落空对象并告警一次。 */
+export function normalizeGuidesPrefix(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const out = {}
+  for (const face of Object.keys(raw)) {
+    // 与 normalizeGuides 同一处置：__proto__ 读得到、赋值又会走原型 setter，两头都不是「一个面」
+    if (face === '__proto__') return undefined
+    const one = raw[face]
+    if (typeof one !== 'string') return undefined
+    out[face] = one
+  }
+  return out
+}
 
 /** pollMs 归一：数字且有限才收，钳到下限 1000（太小会白耗磁盘），其余回落默认。启动与每次轮询现读共用。 */
 export function normalizePollMs(raw) {
@@ -152,6 +213,26 @@ const CONFIG_FIELDS = {
     code: 'config.token',
     error: 'token 需为字符串；空串表示清除令牌（关闭鉴权）。',
   },
+  // guides（custom-guides 票 02，五面接通于票 03）：指引词自定义段，一个字段装全部五面
+  // （grill / spec / tickets / implement / ticket）。归一回 undefined = 结构非法 → 整个请求 400
+  // 且一个字都不写盘；immediate = 写盘即生效（/api/state 真变化拍现读 config.json，且 config 的
+  // mtime+size 本就在指纹里，手改也下一拍跟上）。服务端只把值原样搬下去，不参与拼装——
+  // 「服务端不造字」的纪律在这一格同样成立，票行那面的 {key}/{path}/{title} 也由界面在复制那一刻填。
+  guides: {
+    normalize: (v) => normalizeGuides(v),
+    effect: EFFECT.IMMEDIATE,
+    code: 'config.guides',
+    error: 'guides 需为 { 面名: { zh, en } } 形状的对象，面内只认 zh/en 两键且都必须是字符串（缺面或空串 = 回落内置指引词）。面名通常是 grill / spec / tickets / implement / ticket 五面，但不校验——别的面名也照收不误（界面只认这五面，写错的面名等于没写）。',
+  },
+  // guidesPrefix（guides-prefix 票 01）：与 guides 平级的一个字段，装每一面复制时要贴在最前面那句话。
+  // 形状 { 面名: 字符串 }——值的维度只有一个（中英不分列），与 guides 同一套纪律：不参与拼装、
+  // immediate 生效、面名不校验。空串 = 不贴，由界面按非空判定。
+  guidesPrefix: {
+    normalize: (v) => normalizeGuidesPrefix(v),
+    effect: EFFECT.IMMEDIATE,
+    code: 'config.guides-prefix',
+    error: 'guidesPrefix 需为 { 面名: 字符串 } 形状的对象，每个面的前缀都必须是字符串（缺面或空串 = 这一面不贴前缀）。面名通常是 grill / spec / tickets / implement / ticket 五面，但不校验——别的面名也照收不误（界面只认这五面，写错的面名等于没写）。',
+  },
 }
 
 // Host 头校验（防 DNS rebinding）：恶意页面把它的域名重绑定到 127.0.0.1 后请求即同源，
@@ -201,13 +282,35 @@ function noteConfigReadFailure(path, e) {
   console.warn('config.json 读取失败，已回退内置默认值：' + path + '（原因：' + String((e && e.message) || e) + '）')
 }
 
-/** 把配置原文合并进默认配置：文件里缺的字段保持默认，recentRoots 归一。 */
+/** 把配置原文合并进默认配置：文件里缺的字段保持默认，recentRoots 归一，guides / guidesPrefix 结构非法回落空对象。 */
 function applyConfigText(cfg, raw) {
   const data = JSON.parse(raw)
   for (const key of ['root', 'port', 'host', 'pollMs', 'pollMode', 'token']) {
     if (data && data[key] !== undefined) cfg[key] = key === 'pollMode' ? normalizePollMode(data[key]) : data[key]
   }
   if (data && data.recentRoots !== undefined) cfg.recentRoots = normalizeRecentRoots(data.recentRoots)
+  if (data && data.guides !== undefined) {
+    const guides = normalizeGuides(data.guides)
+    // 读侧比写侧宽：坏形状回落空对象（= 全用内置段），不抛也不整份丢弃——与 pollMode 归一同姿态。
+    // 但「静默」两个字要不得：POST 那边同一份坏形状是 400，这边若是闷声回落，键名打错的人只会看到
+    // 自定义段忽然不生效而无从查起。沿用每个路径至多告警一次的记账，不随轮询刷屏。
+    if (guides === undefined) {
+      noteConfigReadFailure(cfg.configPath, new Error('guides 字段形状非法（需 { 面名: { zh, en } }，面内只认 zh/en），已回退内置指引词'))
+      cfg.guides = {}
+    } else {
+      cfg.guides = guides
+    }
+  }
+  if (data && data.guidesPrefix !== undefined) {
+    const guidesPrefix = normalizeGuidesPrefix(data.guidesPrefix)
+    // 与 guides 同一姿态：手改写坏一个面的形状，不该让整份配置失效、更不该让服务起不来（回落 = 不贴前缀）
+    if (guidesPrefix === undefined) {
+      noteConfigReadFailure(cfg.configPath, new Error('guidesPrefix 字段形状非法（需 { 面名: 字符串 }，每个面都必须是一个字符串），已回退空前缀'))
+      cfg.guidesPrefix = {}
+    } else {
+      cfg.guidesPrefix = guidesPrefix
+    }
+  }
 }
 
 function baseConfig(configPath) {
@@ -260,13 +363,13 @@ export function saveConfig(patch, configPath) {
  * 解析用户填的追踪目录：
  *   空        → 启动服务时的当前目录；
  *   ~/ 开头   → 展开成用户主目录；
- *   相对路径  → 按本目录（config.json 所在目录）解析，拷到哪里都行为一致。
+ *   相对路径  → 按仓库根（config.json 所在目录）解析，拷到哪里都行为一致。
  */
 export function resolveRoot(raw) {
   let s = String(raw === undefined || raw === null ? '' : raw).trim()
   if (!s) return process.cwd()
   if (s === '~' || s.startsWith('~/')) s = nodePath.join(os.homedir(), s.slice(1))
-  if (!nodePath.isAbsolute(s)) s = nodePath.join(HERE, s)
+  if (!nodePath.isAbsolute(s)) s = nodePath.join(ROOT, s)
   return nodePath.resolve(s)
 }
 
@@ -358,7 +461,8 @@ function withExists(paths) {
 
 /** /api/state 的可调配置载荷组装：recentRoots（归一路径 + 存在性）、pollMs（归一）、
  *  host/port（本次启动的运行值——设置表单的初值语义：写进 config.json 的新值要重启才接管）、
- *  tokenEnabled（非机密）。cfg 与存在性向量由调用方读好传入——真变化拍一份配置只读一次。
+ *  tokenEnabled（非机密）、guides（指引词自定义段原值）与 guidesPrefix（指引词前缀原值）。cfg 与存在性
+ * 向量由调用方读好传入——真变化拍一份配置只读一次。
  *  注意：本组装只在「真变化拍」跑——指纹命中的拍整包复用缓存，这里不执行。 */
 function configPart(cfg, runtime, exists) {
   return {
@@ -368,6 +472,8 @@ function configPart(cfg, runtime, exists) {
     host: runtime.host,
     port: runtime.port,
     tokenEnabled: runtime.token !== '',
+    guides: cfg.guides || {},
+    guidesPrefix: cfg.guidesPrefix || {},
   }
 }
 
@@ -882,7 +988,7 @@ function handleConfigPost(ctx, req, res) {
       applied[key] = CONFIG_FIELDS[key].effect
     }
     if (!Object.keys(patch).length) {
-      sendErr(res, 400, 'config.no-fields', '没有可保存的字段（支持 root / pollMs / pollMode / host / port / token）。')
+      sendErr(res, 400, 'config.no-fields', '没有可保存的字段（支持 root / pollMs / pollMode / host / port / token / guides / guidesPrefix）。')
       return
     }
     try {
